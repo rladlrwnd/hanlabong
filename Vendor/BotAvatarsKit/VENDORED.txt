@@ -1,0 +1,5 @@
+vendored from github.com/Jakubantalik/Libraries.dev packages/bot-avatars/ports/ios/BotAvatarsKit (upstream commit f201163)
+PATCHED for macOS 14 (upstream is iOS-only):
+- Package.swift: added .macOS(.v14)
+- BotAvatarColor.swift: NSColor instead of UIColor on macOS
+- BotAvatarClock.swift: CADisplayLink from NSScreen.displayLink on macOS
