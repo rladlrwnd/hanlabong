@@ -11,6 +11,8 @@ final class FileActionPerformer {
     var onReport: ((String, String) -> Void)?
     /// 복사한 결과(되돌리기 기록용)
     var onCopied: ((_ outputs: [URL], _ inputCount: Int, _ duration: TimeInterval) -> Void)?
+    /// 복사·이동한 파일(바탕화면이면 휠 자리에 놓는다)
+    var onPlaced: ((_ urls: [URL], _ point: NSPoint?) -> Void)?
 
     func perform(_ action: FileAction, urls: [URL], near point: NSPoint?) {
         switch action {
@@ -32,9 +34,9 @@ final class FileActionPerformer {
                 ?? URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app")
             NSWorkspace.shared.open(Array(folders), withApplicationAt: terminal, configuration: NSWorkspace.OpenConfiguration())
         case .copy(let folder):
-            withDestination(folder, verb: L("복사", "Copy")) { [weak self] destination in self?.transfer(urls, to: destination, move: false) }
+            withDestination(folder, verb: L("복사", "Copy")) { [weak self] destination in self?.transfer(urls, to: destination, move: false, near: point) }
         case .move(let folder):
-            withDestination(folder, verb: L("이동", "Move")) { [weak self] destination in self?.transfer(urls, to: destination, move: true) }
+            withDestination(folder, verb: L("이동", "Move")) { [weak self] destination in self?.transfer(urls, to: destination, move: true, near: point) }
         }
     }
 
@@ -56,10 +58,10 @@ final class FileActionPerformer {
     }
 
     /// 파일 옮기기·복사는 오래 걸릴 수 있어(큰 폴더) 작업 큐에서 한다
-    private func transfer(_ urls: [URL], to folder: URL, move: Bool) {
+    private func transfer(_ urls: [URL], to folder: URL, move: Bool, near point: NSPoint?) {
         RecentFolders.remember(folder)
         let started = Date()
-        let report = onReport, copied = onCopied
+        let report = onReport, copied = onCopied, placed = onPlaced
         DispatchQueue.global(qos: .userInitiated).async {
             var done: [URL] = []
             var failed: [String] = []
@@ -79,6 +81,7 @@ final class FileActionPerformer {
                 let body = failed.isEmpty ? "" : L("못 한 것: ", "Failed: ") + failed.prefix(3).joined(separator: ", ")
                 report?(title, body)
                 if !move, !done.isEmpty { copied?(done, urls.count, Date().timeIntervalSince(started)) }
+                placed?(done, point)
                 if !done.isEmpty { NSWorkspace.shared.activateFileViewerSelecting(done) }
             }
         }

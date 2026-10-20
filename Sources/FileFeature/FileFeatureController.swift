@@ -38,6 +38,7 @@ package final class FileFeatureController {
         watcher.onShowWheel = { [weak self] mouse, mode in self?.showWheel(at: mouse, mode: mode) }
         watcher.onSwitchMode = { [weak self] mode in self?.switchWheel(to: mode) }
         actions.onReport = { [weak self] title, body in self?.notifier.notify(title: title, body: body) }
+        actions.onPlaced = { urls, point in DesktopPlacement.place(urls, near: point) }
         actions.onCopied = { [weak self] outputs, count, duration in
             self?.history.add(JobRecord(date: Date(), skillID: "action-copy", skillName: L("복사", "Copy"), symbol: "doc.on.doc",
                                         inputCount: count, outputs: outputs.map(\.path), duration: duration))
@@ -179,6 +180,8 @@ package final class FileFeatureController {
     private func runSkill(_ skill: FileSkill, urls: [URL], fromWheel: Bool, anchor: NSPoint? = nil) {
         let id = UUID()
         let started = Date()
+        // 결과가 바탕화면에 생기면 이 자리(휠 가운데)에 놓는다
+        let spot = fromWheel ? wheel.lastCenter : anchor
         if fromWheel {
             wheelJob = id
             progressCard.anchor = wheel.lastCenter        // 카드는 휠이 있던 자리에(빨리 끝나 5초 전에 카드가 떠도)
@@ -203,6 +206,7 @@ package final class FileFeatureController {
                 }
             )
             self?.finish(id, skill: skill, inputCount: urls.count, started: started, report: report)
+            DesktopPlacement.place(report.outputs, near: spot)
         }
         jobs.begin(JobCenter.Job(id: id, title: skill.name, symbol: skill.symbol ?? "photo", total: urls.count, started: started)) {
             task.cancel()
@@ -272,6 +276,7 @@ package final class FileFeatureController {
         let title = L("AI 오타수정", "AI typo fix")
         wheelJob = id
         progressCard.anchor = wheel.lastCenter        // 검토 대기 카드도 휠이 있던 자리에
+        jobSpots[id] = wheel.lastCenter
         wheel.beginWork(total: urls.count, ai: true)
         // 파일 이름·내용은 남기지 않는다
         log.info("ai job start: files=\(urls.count, privacy: .public) cloud=\(!agent.isLocal, privacy: .public)")
@@ -404,8 +409,12 @@ package final class FileFeatureController {
         }
     }
 
+    /// AI 작업이 시작된 자리(결과를 바탕화면 그 자리에 놓으려고)
+    private var jobSpots: [UUID: NSPoint] = [:]
+
     private func record(_ id: UUID, title: String, documents: [OCRReview.Document], outputs: [URL],
                         failures: [JobRecord.Failure], started: Date) {
+        DesktopPlacement.place(outputs, near: jobSpots.removeValue(forKey: id))
         history.add(JobRecord(
             date: started, skillID: "image-ocr-ai", skillName: title, symbol: "sparkles",
             inputCount: documents.count + failures.count, outputs: outputs.map(\.path), failures: failures,
@@ -469,6 +478,7 @@ package enum FileFeatureSettings {
 private struct FileFeatureSection: View {
     @AppStorage(FileFeatureController.enabledKey) private var enabled = true
     @State private var keysChanged = false
+    @AppStorage(DesktopPlacement.enabledKey) private var placeAtWheel = true
 
     var body: some View {
         Section(L("파일 기능", "File features")) {
@@ -485,6 +495,9 @@ private struct FileFeatureSection: View {
             Text(L("파일을 끌기 시작한 뒤에 키를 눌러요(⌃는 끌기 전에 누르면 오른쪽 클릭이 돼요). 휠이 떠 있는 동안 다른 키를 누르면 그 휠로 바뀌어요. 같은 키를 고르면 두 휠의 키가 서로 바뀌어요.", "Press the key after you start dragging (⌃ before clicking is a right-click). Press another key while the wheel is open to switch. Picking a key that's in use swaps the two."))
                 .font(.caption).foregroundStyle(.secondary)
             LabeledContent(L("저장 위치", "Saved to"), value: L("원본 옆에 새 파일 (원본은 그대로)", "A new file next to the original (the original is untouched)"))
+            Toggle(L("바탕화면에서는 결과 파일을 휠이 있던 자리에 놓기", "On the Desktop, place results where the wheel was"), isOn: $placeAtWheel)
+            Text(L("처음 한 번 'Finder 제어' 허용을 물어봐요. 바탕화면 정렬 기준이나 스택을 켜 두면 Finder가 자리를 다시 정해요.", "Asks once for permission to control Finder. If Desktop sorting or Stacks is on, Finder rearranges icons anyway."))
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 }

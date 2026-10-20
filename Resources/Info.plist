@@ -32,6 +32,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Finder에 새로 만든 결과 파일을 바탕화면의 휠 자리에 놓으려고 아이콘 위치를 정해요. (Places new result files on the Desktop where the wheel was.)</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

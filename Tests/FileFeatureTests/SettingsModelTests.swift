@@ -305,3 +305,24 @@ struct FileActionTests {
         #expect(FileActionPerformer.uniqueURL(folder).lastPathComponent == "폴더 (1)")
     }
 }
+
+struct DesktopPlacementTests {
+    @Test func firstResultSitsAtTheWheelAndOthersAroundIt() {
+        let spots = DesktopPlacement.offsets(count: 12)
+        #expect(spots[0] == .zero)                                           // 첫 결과는 휠 가운데
+        #expect(Set(spots.map { "\($0.x),\($0.y)" }).count == 12)          // 겹치지 않는다
+        #expect(spots.prefix(9).allSatisfy { abs($0.x) <= 100 && abs($0.y) <= 110 })   // 9개까지는 휠 바로 주변
+    }
+
+    @Test func screenPointBecomesFinderTopLeftPoint() {
+        // 화면 좌표는 왼쪽 아래가 0, Finder 바탕화면은 왼쪽 위가 0
+        #expect(DesktopPlacement.finderPoint(NSPoint(x: 300, y: 200), mainScreenHeight: 1000) == CGPoint(x: 300, y: 800))
+    }
+
+    @Test func onlyFilesDirectlyOnTheDesktopAreMoved() {
+        let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0]
+        #expect(DesktopPlacement.isOnDesktop(desktop.appendingPathComponent("a_web.jpg")))
+        #expect(!DesktopPlacement.isOnDesktop(desktop.appendingPathComponent("폴더/a_web.jpg")))
+        #expect(!DesktopPlacement.isOnDesktop(URL(fileURLWithPath: "/tmp/a_web.jpg")))
+    }
+}
