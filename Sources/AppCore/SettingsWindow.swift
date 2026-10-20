@@ -543,7 +543,7 @@ private struct GeneralTab: View {
                 }
             }
             Section(L("정보", "About")) {
-                LabeledContent(L("버전", "Version"), value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "-")
+                LabeledContent(L("버전", "Version"), value: AppVersion.label)
                 ForEach(extras.info) { row in
                     LabeledContent(row.label, value: row.value)
                         .lineLimit(1)

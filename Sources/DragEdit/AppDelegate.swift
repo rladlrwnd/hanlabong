@@ -100,6 +100,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(withTitle: L("손쉬운 사용 권한…", "Accessibility access…"), action: #selector(openPermission), keyEquivalent: "").target = self
         menu.addItem(.separator())
+        let version = NSMenuItem(title: "DragEdit \(AppVersion.label)", action: nil, keyEquivalent: "")
+        version.isEnabled = false                      // 지금 켜진 게 어느 버전인지 한눈에
+        menu.addItem(version)
         menu.addItem(withTitle: L("DragEdit 종료", "Quit DragEdit"), action: #selector(quit), keyEquivalent: "q").target = self
         item.menu = menu
         statusItem = item

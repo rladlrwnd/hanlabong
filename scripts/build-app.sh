@@ -93,6 +93,13 @@ cp "$BINARY" "$APP/Contents/MacOS/DragEdit"
 # 배포용은 내부 이름표(심볼)를 걷어낸다: 파일이 작아지고, 남아 있을 수 있는 빌드 컴퓨터 경로도 지워진다
 [ "$CONFIG" = "Release" ] && strip -x "$APP/Contents/MacOS/DragEdit"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+# 버전 이름표: 사용자에게 보이는 버전(예: 1.0.0)은 Info.plist에서, 빌드 번호는 git 커밋 수로 매번 올라간다
+BUILD_NUMBER="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$APP/Contents/Info.plist"
+# 개발용(debug)은 이름을 "DragEdit Dev"로: 권한 목록·Dock·메뉴에서 설치판(DragEdit)과 헷갈리지 않게
+if [ "$CONFIG" = "Debug" ]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleName DragEdit Dev" -c "Set :CFBundleDisplayName DragEdit Dev" "$APP/Contents/Info.plist"
+fi
 for bundle in "${RESOURCE_BUNDLES[@]}"; do
   [ -e "$bundle" ] && cp -R "$bundle" "$APP/Contents/Resources/"
 done
