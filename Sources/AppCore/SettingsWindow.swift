@@ -80,7 +80,7 @@ package final class SettingsWindowController: NSObject, NSWindowDelegate {
         if let tab { selection.tab = tab }
         if window == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 760, height: 620),
+                contentRect: NSRect(x: 0, y: 0, width: SettingsView.width, height: 620),
                 styleMask: [.titled, .closable, .miniaturizable],
                 backing: .buffered, defer: false
             )
@@ -170,8 +170,11 @@ private struct SettingsView: View {
                 .tag(SettingsWindowController.generalTabID)
         }
         .padding(20)
-        .frame(width: 760, height: 620)
+        .frame(width: Self.width, height: 620)
     }
+
+    /// 영어는 탭 이름이 길어서(Photo presets·File wheels…) 좁으면 탭 줄이 » 메뉴로 접힌다 → 넓게
+    static let width: CGFloat = AppLanguage.isKorean ? 820 : 960
 }
 
 // MARK: - 에이전트 탭
