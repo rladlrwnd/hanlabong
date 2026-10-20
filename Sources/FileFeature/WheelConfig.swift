@@ -71,7 +71,7 @@ package struct WheelConfig: Codable, Equatable, Sendable {
     package init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
-        presets = try c.decode([FileSkill].self, forKey: .presets)
+        presets = try c.decode([FileSkill].self, forKey: .presets).map(WheelConfig.localizedPreset)
         image = try c.decode([WheelSlotConfig].self, forKey: .image)
         pdf = try c.decode([WheelSlotConfig].self, forKey: .pdf)
         text = try c.decodeIfPresent([WheelSlotConfig].self, forKey: .text) ?? Self.defaultText
@@ -121,6 +121,25 @@ package struct WheelConfig: Codable, Equatable, Sendable {
         .action("video-gif"),
         .group(L("소리", "Audio"), symbol: "music.note", [DefaultFileSkills.videoToMP3.id, DefaultFileSkills.videoAudio.id]),
     ]
+
+    /// 기본 묶음·프리셋 이름은 저장할 때의 언어로 남아 있으니, 지금 언어로 바꿔 보여준다(직접 고친 이름은 그대로)
+    static let groupNames: [(ko: String, en: String)] = [("형식", "Format"), ("텍스트", "Text"), ("이미지", "Image"), ("기타", "More"), ("소리", "Audio")]
+
+    static func localizedGroup(_ name: String) -> String {
+        guard let pair = groupNames.first(where: { $0.ko == name || $0.en == name }) else { return name }
+        return L(pair.ko, pair.en)
+    }
+
+    static let presetNames: [String: (ko: String, en: String)] = [
+        "photo-web": ("웹용", "Web"), "photo-client-sample": ("클라이언트 샘플", "Client sample"), "photo-preview": ("미리보기", "Preview"),
+    ]
+
+    static func localizedPreset(_ skill: FileSkill) -> FileSkill {
+        guard let pair = presetNames[skill.id], skill.name == pair.ko || skill.name == pair.en else { return skill }
+        var copy = skill
+        copy.name = L(pair.ko, pair.en)
+        return copy
+    }
 
     package static var `default`: WheelConfig {
         WheelConfig(presets: DefaultFileSkills.photoPresets, image: defaultImage, pdf: defaultPDF)
@@ -230,7 +249,7 @@ extension WheelLayout {
         let slots = config.slots(for: kind).prefix(WheelConfig.maxSlots).map { slot -> WheelItem? in
             if let action = slot.action { return config.item(action, ai: ai) }
             let children = (slot.children ?? []).prefix(WheelConfig.maxChildren).compactMap { config.item($0, ai: ai) }
-            let title = slot.group ?? ""
+            let title = WheelConfig.localizedGroup(slot.group ?? "")
             return WheelItem(id: title.lowercased(), title: title, symbol: slot.symbol ?? "square.grid.2x2",
                              subtitle: children.isEmpty ? L("비어 있어요 · 설정에서 채워줘", "Empty · fill it in Settings") : L("바깥 칸에 놓기", "Drop on an outer slot"), children: children)
         }

@@ -53,7 +53,7 @@ package final class SkillStore: ObservableObject {
 
         do {
             let file = try SkillFile.decode(Data(contentsOf: Self.fileURL))
-            skills = file.skills
+            skills = file.skills.map(DefaultSkills.localized)   // 기본 스킬 이름은 지금 언어로
             problem = nil
             log.info("loaded \(file.skills.count, privacy: .public) skills")
         } catch {

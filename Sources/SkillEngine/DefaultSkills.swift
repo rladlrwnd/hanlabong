@@ -57,4 +57,22 @@ public enum DefaultSkills {
             steps: [.changeCase(.lower)]
         ),
     ]
+
+    /// 기본 스킬 이름(한/영). skills.json에는 만들 때의 언어로 적혀 있어서, 앱 언어를 바꾸면 이름도 따라 바꿔 보여준다.
+    /// 사용자가 직접 이름을 고친 스킬은 그대로 둔다.
+    static let names: [String: (ko: String, en: String)] = [
+        "sentence-lines": ("문장마다 줄바꿈", "Line break per sentence"),
+        "one-line": ("한 줄로 합치기", "Join into one line"),
+        "tidy-spaces": ("공백·빈 줄 정리", "Tidy spaces & blank lines"),
+        "bullets": ("줄마다 글머리표", "Bullet every line"),
+        "uppercase": ("대문자로", "UPPERCASE"),
+        "lowercase": ("소문자로", "lowercase"),
+    ]
+
+    public static func localized(_ skill: Skill) -> Skill {
+        guard let pair = names[skill.id], skill.name == pair.ko || skill.name == pair.en else { return skill }
+        var copy = skill
+        copy.name = L(pair.ko, pair.en)
+        return copy
+    }
 }

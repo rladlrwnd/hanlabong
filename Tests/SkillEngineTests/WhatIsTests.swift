@@ -69,3 +69,16 @@ struct PromptInjectionGuardTests {
         #expect(WhatIsText.partPrompt("x", index: 1, total: 2).contains("<document>"))
     }
 }
+
+struct DefaultSkillNameTests {
+    @Test func builtInNamesFollowTheAppLanguageButRenamedOnesStay() {
+        let stored = Skill(id: "one-line", name: "한 줄로 합치기", steps: [])
+        #expect(DefaultSkills.localized(stored).name == L("한 줄로 합치기", "Join into one line"))
+        let english = Skill(id: "one-line", name: "Join into one line", steps: [])
+        #expect(DefaultSkills.localized(english).name == L("한 줄로 합치기", "Join into one line"))
+        let renamed = Skill(id: "one-line", name: "내 한줄 스킬", steps: [])
+        #expect(DefaultSkills.localized(renamed).name == "내 한줄 스킬")
+        let mine = Skill(id: "my-skill", name: "내 스킬", steps: [])
+        #expect(DefaultSkills.localized(mine).name == "내 스킬")
+    }
+}
