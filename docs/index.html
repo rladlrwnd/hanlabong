@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DragEdit</title>
+<meta name="description" content="끌고 누르고 놓으면 끝. 맥에서만 도는 파일 변환과 글자 손질.">
+<style>
+:root {
+  --ink: #17171a;
+  --sub: #6b6b73;
+  --line: rgba(20, 20, 30, .08);
+  --paper: #f6f5f3;
+  --card: rgba(255, 255, 255, .62);
+  --glass: rgba(255, 255, 255, .58);
+  --glass-edge: rgba(255, 255, 255, .7);
+  --accent: #ff7a45;
+  --hi: rgba(255, 122, 69, .32);
+  --shadow: 0 30px 80px rgba(60, 30, 10, .14);
+  --petal-edge: rgba(40, 20, 0, .10);
+  --wglass: rgba(255, 255, 255, .55); --wdisk: rgba(240, 240, 244, .55); --whi: rgba(10, 132, 255, .38); --wedge: rgba(0, 0, 0, .10);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #f2f2f4; --sub: #a1a1aa; --line: rgba(255,255,255,.09); --paper: #121214;
+    --card: rgba(40, 40, 46, .6); --glass: rgba(72, 72, 84, .62); --glass-edge: rgba(255,255,255,.22); --petal-edge: rgba(255,255,255,.2); --wglass: rgba(44, 44, 48, .62); --wdisk: rgba(22, 22, 24, .62); --wedge: rgba(255,255,255,.14);
+    --shadow: 0 30px 80px rgba(0,0,0,.45);
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+a { color: inherit; }
+.wrap { width: min(1120px, 100% - 32px); margin: 0 auto; }
+
+/* 상단 */
+nav { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  background: color-mix(in srgb, var(--paper) 70%, transparent); border-bottom: 1px solid var(--line); }
+nav .wrap { display: flex; align-items: center; gap: 24px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; text-decoration: none; }
+.brand svg { width: 26px; height: 26px; }
+nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 15px; color: var(--sub); }
+nav .links a { text-decoration: none; }
+nav .links a:hover { color: var(--ink); }
+.lang { display: flex; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; font-size: 13px; }
+.lang button { border: 0; background: none; color: var(--sub); padding: 5px 11px; cursor: pointer; font: inherit; }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.soon { font-size: 14px; padding: 8px 16px; border-radius: 99px; background: var(--ink); color: var(--paper); text-decoration: none; white-space: nowrap; }
+@media (max-width: 760px) { nav .links { display: none; } nav .wrap { gap: 12px; } .lang { margin-left: auto; } }
+
+/* 첫 화면 */
+.hero { position: relative; padding: 72px 0 40px; text-align: center; overflow: hidden; }
+.hero::before { content: ""; position: absolute; inset: -20% -10% auto; height: 120%; z-index: -1;
+  background: radial-gradient(800px 500px at 18% 20%, #ffd08a, transparent 60%),
+              radial-gradient(700px 520px at 85% 30%, #c9b4ff, transparent 60%),
+              radial-gradient(900px 600px at 50% 90%, #ff9a76, transparent 60%);
+  opacity: .55; filter: saturate(1.1); }
+h1 { font-size: clamp(40px, 7vw, 76px); line-height: 1.05; letter-spacing: -.035em; margin: 0 0 18px; }
+.lead { font-size: clamp(17px, 2vw, 21px); color: var(--sub); max-width: 640px; margin: 0 auto; }
+.local { margin-top: 10px; font-size: 15px; color: var(--sub); }
+
+/* 체험판 */
+.stage { position: relative; margin: 44px auto 0; height: 520px; max-width: 980px; border-radius: 28px;
+  background: var(--card); border: 1px solid var(--glass-edge); box-shadow: var(--shadow);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.stage .hint { position: absolute; left: 0; right: 0; top: 18px; font-size: 14px; color: var(--sub); }
+.stage .hint b { font-weight: 600; color: var(--ink); }
+.keys { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 8px; }
+.key { min-width: 64px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--glass);
+  font-size: 13px; color: var(--sub); cursor: pointer; font-family: inherit; }
+.key kbd { display: block; font: 600 18px/1 -apple-system, sans-serif; color: var(--ink); margin-bottom: 3px; }
+.key.on { background: var(--ink); color: var(--paper); }
+.key.on kbd { color: var(--paper); }
+.file { position: absolute; width: 92px; text-align: center; font-size: 12px; color: var(--ink); cursor: grab; z-index: 3; }
+.file .icon { width: 64px; height: 76px; margin: 0 auto 6px; border-radius: 10px; display: grid; place-items: center;
+  font: 700 12px/1 -apple-system, sans-serif; color: #fff; box-shadow: 0 6px 16px rgba(0,0,0,.15); position: relative; }
+.file .icon::after { content: ""; position: absolute; top: 0; right: 0; width: 18px; height: 18px; background: rgba(255,255,255,.35);
+  border-bottom-left-radius: 8px; border-top-right-radius: 10px; }
+.file .name { padding: 1px 6px; border-radius: 5px; display: inline-block; }
+.file.dragging { cursor: grabbing; z-index: 30; }
+.file.dragging .name { background: #2f6bff; color: #fff; }
+.file.ghost { opacity: .35; pointer-events: none; }
+.file.made { animation: pop .5s cubic-bezier(.2,.9,.3,1.3); }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* 휠 */
+.wheel { --w: min(400px, 92vw); position: absolute; width: var(--w); height: var(--w); margin: calc(var(--w) / -2) 0 0 calc(var(--w) / -2); pointer-events: none; z-index: 20;
+  opacity: 0; transform: scale(.94); transition: opacity .22s ease, transform .35s cubic-bezier(.25,.9,.3,1.05); }
+.wheel.show { opacity: 1; transform: scale(1); }
+.wheel svg { position: relative; z-index: 1; width: 100%; height: 100%; overflow: visible; }
+.petal { fill: var(--wglass); stroke: var(--wedge); stroke-width: 1; transition: fill .12s; }
+.petal.hot { fill: var(--whi); }
+.disk { fill: var(--wdisk); stroke: var(--wedge); stroke-width: 1.2; }
+.wicon { fill: none; stroke: var(--ink); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ring2 { transform-origin: 200px 200px; transition: opacity .2s, transform .3s cubic-bezier(.25,.9,.3,1.05); }
+.ring2.hide { opacity: 0; transform: scale(.86); }
+.plabel { font: 600 12px/1 -apple-system, "Apple SD Gothic Neo", sans-serif; fill: var(--ink); text-anchor: middle; dominant-baseline: middle; }
+.ctitle { font: 700 13px/1 -apple-system, sans-serif; fill: var(--ink); text-anchor: middle; }
+.csub { font: 11px/1 -apple-system, sans-serif; fill: var(--sub); text-anchor: middle; }
+.wheel .glassbg { position: absolute; inset: 20.5%; border-radius: 50%; backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); }
+.toast { position: absolute; left: 50%; top: 56px; transform: translate(-50%, -10px); padding: 10px 16px; border-radius: 14px;
+  background: var(--card); border: 1px solid var(--glass-edge); box-shadow: var(--shadow); font-size: 14px; opacity: 0; transition: .3s; z-index: 40; max-width: 90%; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* 본문 섹션 */
+section { padding: 96px 0 0; }
+.eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--sub); margin-bottom: 10px; }
+h2 { font-size: clamp(30px, 4.4vw, 48px); line-height: 1.12; letter-spacing: -.03em; margin: 0 0 14px; }
+.sub { color: var(--sub); max-width: 640px; margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 64px; }
+.stat { padding: 22px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); }
+.stat .n { font-size: 34px; font-weight: 700; letter-spacing: -.03em; }
+.stat .t { font-weight: 600; margin-top: 2px; }
+.stat .d { color: var(--sub); font-size: 14px; margin-top: 4px; }
+@media (max-width: 860px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+.mode { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; margin-top: 40px; }
+@media (max-width: 860px) { .mode { grid-template-columns: 1fr; } }
+.keycap { display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); margin-bottom: 18px; }
+.keycap kbd { font: 700 22px/1 -apple-system, sans-serif; }
+.keycap span { font-size: 14px; color: var(--sub); }
+.cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (max-width: 520px) { .cards { grid-template-columns: 1fr; } }
+.card { padding: 18px 18px 20px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+.card h3 { margin: 0 0 6px; font-size: 16px; letter-spacing: -.01em; }
+.card p { margin: 0; font-size: 14px; color: var(--sub); line-height: 1.55; }
+.mini { width: 100%; max-width: 440px; aspect-ratio: 1; margin: 0 auto; display: block; padding: 6%; border-radius: 32px;
+  background: radial-gradient(70% 70% at 30% 25%, #ffd08a, transparent 70%), radial-gradient(70% 70% at 80% 80%, #c9b4ff, transparent 70%), radial-gradient(60% 60% at 70% 20%, #ff9a76, transparent 70%);
+  box-shadow: var(--shadow); }
+
+.formats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 40px; }
+@media (max-width: 860px) { .formats { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .formats { grid-template-columns: 1fr; } }
+.fmt { padding: 20px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+.fmt h3 { margin: 0 0 10px; font-size: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 600 12px/1 -apple-system, sans-serif; padding: 6px 9px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.fmt .note { margin-top: 10px; font-size: 13px; color: var(--sub); }
+
+.privacy { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 40px; }
+@media (max-width: 760px) { .privacy { grid-template-columns: 1fr; } }
+.pv { padding: 26px; border-radius: 22px; border: 1px solid var(--line); background: var(--card); }
+.pv.good { background: var(--ink); color: var(--paper); }
+.pv.good p { color: color-mix(in srgb, var(--paper) 70%, transparent); }
+.pv h3 { margin: 0 0 8px; font-size: 19px; }
+.pv p { margin: 0; color: var(--sub); }
+
+.cta { margin: 110px 0 0; padding: 64px 28px; border-radius: 32px; text-align: center; position: relative; overflow: hidden;
+  background: var(--card); border: 1px solid var(--glass-edge); box-shadow: var(--shadow); }
+.cta::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .45;
+  background: radial-gradient(600px 300px at 20% 0%, #ffd08a, transparent 70%), radial-gradient(600px 300px at 80% 100%, #c9b4ff, transparent 70%); }
+.cta ul { list-style: none; padding: 0; margin: 26px auto 30px; max-width: 520px; text-align: left; color: var(--sub); }
+.cta li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.cta .btn { display: inline-block; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: var(--paper); text-decoration: none; font-weight: 600; }
+.cta .btn:hover { opacity: .85; }
+.cta .alt { display: inline-block; margin-left: 10px; padding: 14px 22px; border-radius: 99px; border: 1px solid var(--line); text-decoration: none; font-weight: 600; }
+.cta .warn { margin-top: 14px; font-size: 13px; color: var(--sub); max-width: 560px; margin-left: auto; margin-right: auto; }
+.cta .req { margin-top: 14px; font-size: 14px; color: var(--sub); }
+footer { padding: 60px 0 50px; color: var(--sub); font-size: 13px; line-height: 1.7; }
+footer .wrap { border-top: 1px solid var(--line); padding-top: 24px; }
+
+.why { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 40px; }
+@media (max-width: 860px) { .why { grid-template-columns: 1fr; } }
+.why .big { grid-column: 1 / -1; }
+.wcard { padding: 28px; border-radius: 24px; background: var(--card); border: 1px solid var(--line); }
+.wcard .no { font-size: 13px; color: var(--sub); letter-spacing: .06em; }
+.wcard h3 { margin: 6px 0 14px; font-size: 22px; letter-spacing: -.02em; }
+.wcard ul { margin: 0; padding: 0; list-style: none; }
+.wcard li { padding: 9px 0; border-top: 1px solid var(--line); color: var(--sub); font-size: 15px; }
+.wcard li strong { color: var(--ink); font-weight: 600; }
+.preset { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 4px 0 14px; }
+@media (max-width: 640px) { .preset { grid-template-columns: 1fr; } }
+.preset div { padding: 14px; border-radius: 14px; background: color-mix(in srgb, var(--ink) 5%, transparent); font-size: 14px; color: var(--sub); }
+.preset b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
+
+/* 글자 팝업 움직이는 그림 */
+.textdemo { margin: 26px auto 0; max-width: 980px; text-align: left; }
+.textdemo .cap { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 4px 12px; }
+.textdemo .cap h3 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
+.textdemo .cap p { margin: 0; color: var(--sub); font-size: 15px; }
+.tdwin { position: relative; height: 620px; border-radius: 22px; overflow: hidden; background: var(--card); border: 1px solid var(--glass-edge); box-shadow: var(--shadow); }
+.tdbar { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--sub); }
+.tdbar i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 18%, transparent); display: inline-block; }
+.tdbar span { margin-left: 10px; }
+.tddoc { padding: 26px 34px; font-size: 16px; line-height: 1.75; max-width: 640px; white-space: pre-wrap; }
+.tddoc .sel { white-space: pre-wrap; border-radius: 4px; transition: background .25s; }
+.tddoc .sel.on { background: rgba(47, 107, 255, .22); }
+.tdkey { position: absolute; right: 22px; top: 54px; display: flex; gap: 6px; opacity: 0; transform: translateY(-6px); transition: .3s; }
+.tdkey.on { opacity: 1; transform: none; }
+.tdkey kbd { padding: 7px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--glass); font: 600 14px/1 -apple-system, sans-serif; box-shadow: 0 3px 0 var(--line); }
+.tdkey.press kbd { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+.tdpop { position: absolute; left: 34px; width: min(470px, calc(100% - 68px)); border-radius: 24px; padding: 14px 12px 10px; z-index: 2;
+  background: color-mix(in srgb, var(--wdisk) 92%, transparent); border: 1px solid var(--wedge); box-shadow: var(--shadow);
+  backdrop-filter: blur(26px) saturate(1.6); -webkit-backdrop-filter: blur(26px) saturate(1.6);
+  opacity: 0; transform: translateY(8px) scale(.97); transform-origin: top left; transition: opacity .3s, transform .4s cubic-bezier(.25,.9,.3,1.05); }
+.tdpop.on { opacity: 1; transform: none; }
+.tdtop { display: flex; align-items: center; gap: 10px; padding: 0 2px; }
+.tdagent { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 5px; border-radius: 99px; border: 1px solid var(--wedge);
+  background: color-mix(in srgb, var(--ink) 5%, transparent); font: 600 14px/1 -apple-system, sans-serif; white-space: nowrap; }
+.tdagent .bot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #ffd23a; font-size: 13px; }
+.tdagent .chev { opacity: .6; font-weight: 400; }
+.tdin { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px; font-size: 15px; white-space: nowrap; overflow: hidden; }
+.tdin .ph { color: var(--sub); overflow: hidden; text-overflow: ellipsis; }
+.tdin .caret { width: 1.5px; height: 17px; background: #0a84ff; animation: blink 1s steps(1) infinite; flex: none; }
+@keyframes blink { 50% { opacity: 0; } }
+.tdprev { margin: 10px 8px 6px; font-size: 13px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tdlist { font-size: 15px; }
+.tdlist div { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-radius: 14px; border: 1px solid transparent; transition: background .2s, border-color .2s; }
+.tdlist div.hot { border-color: var(--wedge); background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.tdlist svg { width: 18px; height: 18px; flex: none; }
+.tdlist span { flex: 1; font-weight: 600; }
+.tdlist kbd { font: 600 12px/1 -apple-system, sans-serif; color: var(--sub); }
+.tdout { margin: 6px 4px 4px; padding: 12px 14px; border-radius: 14px; font-size: 15px; line-height: 1.6; background: color-mix(in srgb, var(--ink) 5%, transparent); display: none; white-space: pre-wrap; }
+.tdout.on { display: block; }
+.tdorb { width: 14px; height: 14px; border-radius: 50%; background: conic-gradient(#ff9a5a, #c9a6ff, #7cc7ff, #ff9a5a); animation: spin 1.2s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.tdpop.writing { box-shadow: var(--shadow), 0 0 0 1.5px rgba(124,199,255,.55), 0 0 22px rgba(201,166,255,.35); }
+.tdsteps { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; gap: 8px; font-size: 12px; color: var(--sub); }
+.tdsteps span { padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); transition: .3s; }
+.tdsteps span.on { background: var(--ink); color: var(--paper); border-color: transparent; }
+@media (max-width: 640px) { .tdwin { height: 700px; } .tddoc { padding: 20px; font-size: 15px; } .tdpop { left: 16px; width: calc(100% - 32px); } }
+
+[data-ko], [data-en] { }
+html[lang="en"] [data-ko] { display: none !important; }
+html[lang="ko"] [data-en] { display: none !important; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(16 16)">
+        <g fill="#ff7a45"><path d="M-3-14h6a3 3 0 0 1 3 3v5h-12v-5a3 3 0 0 1 3-3z" opacity=".95"/></g>
+        <g fill="#ffb347" transform="rotate(90)"><path d="M-3-14h6a3 3 0 0 1 3 3v5h-12v-5a3 3 0 0 1 3-3z"/></g>
+        <g fill="#c9a6ff" transform="rotate(180)"><path d="M-3-14h6a3 3 0 0 1 3 3v5h-12v-5a3 3 0 0 1 3-3z"/></g>
+        <g fill="#ff9a76" transform="rotate(270)"><path d="M-3-14h6a3 3 0 0 1 3 3v5h-12v-5a3 3 0 0 1 3-3z"/></g>
+        <circle r="4" fill="currentColor" opacity=".85"/></g></svg>
+      DragEdit
+    </a>
+    <div class="links">
+      <a href="#why"><span data-ko>왜 DragEdit</span><span data-en>Why</span></a>
+      <a href="#wheels"><span data-ko>세 가지 휠</span><span data-en>Wheels</span></a>
+      <a href="#ai"><span data-ko>AI</span><span data-en>AI</span></a>
+      <a href="#formats"><span data-ko>형식</span><span data-en>Formats</span></a>
+      <a href="#privacy"><span data-ko>개인정보</span><span data-en>Privacy</span></a>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="ko">한국어</button><button type="button" data-lang="en">EN</button>
+    </div>
+    <a class="soon" href="https://github.com/rladlrwnd/hanlabong/releases/latest"><span data-ko>다운로드</span><span data-en>Download</span></a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <h1><span data-ko>끌고, 누르고,<br>놓으면 끝.</span><span data-en>Drag. Tap.<br>Drop. Done.</span></h1>
+    <p class="lead">
+      <span data-ko>파일을 끌다가 ⇧ 하나 누르면 커서 아래에 휠이 떠요. 칸에 놓으면 원본 옆에 새 파일이 생깁니다.</span>
+      <span data-en>Start dragging a file and tap ⇧. A wheel opens under your cursor. Drop on a slot and the new file lands right next to the original.</span>
+    </p>
+    <p class="local"><span data-ko>모든 변환은 내 맥 안에서. 업로드 없음.</span><span data-en>Everything runs on your Mac. Nothing is uploaded.</span></p>
+
+    <div class="stage" id="stage">
+      <div class="hint">
+        <span data-ko><b>파일을 끌어보세요.</b> 끄는 동안 ⇧ · ⌘ · ⌃ 를 누르거나 아래 단추를 눌러요.</span>
+        <span data-en><b>Drag a file.</b> While dragging, press ⇧ · ⌘ · ⌃ or tap a key below.</span>
+      </div>
+      <div class="toast" id="toast"></div>
+      <div class="wheel" id="wheel"><div class="glassbg"></div><svg viewBox="0 0 400 400" id="wheelSvg"></svg></div>
+      <div class="keys">
+        <button class="key" data-mode="convert" type="button"><kbd>⇧</kbd><span data-ko>변환</span><span data-en>Convert</span></button>
+        <button class="key" data-mode="tools" type="button"><kbd>⌘</kbd><span data-ko>도구</span><span data-en>Tools</span></button>
+        <button class="key" data-mode="actions" type="button"><kbd>⌃</kbd><span data-ko>동작</span><span data-en>Actions</span></button>
+      </div>
+    </div>
+
+    <div class="textdemo" id="textdemo">
+      <div class="cap">
+        <h3><span data-ko>글자는 ⌥ Space</span><span data-en>Text gets ⌥ Space</span></h3>
+        <p><span data-ko>어느 앱에서든 글자를 고르고 ⌥ Space. 규칙은 바로, 애매한 건 내 맥의 AI가.</span><span data-en>Select text in any app and press ⌥ Space. Rules run instantly. The fuzzy parts go to the AI on your Mac.</span></p>
+      </div>
+      <div class="tdwin" aria-hidden="true">
+        <div class="tdbar"><i></i><i></i><i></i><span data-ko>메모</span><span data-en>Notes</span></div>
+        <div class="tddoc" id="tdDoc"></div>
+        <div class="tdkey" id="tdKey"><kbd>⌥</kbd><kbd>Space</kbd></div>
+        <div class="tdpop" id="tdPop">
+          <div class="tdtop"><span class="tdagent" id="tdAgent"></span><span class="tdin" id="tdIn"></span></div>
+          <div class="tdprev" id="tdPrev"></div>
+          <div class="tdlist" id="tdList"></div>
+          <div class="tdout" id="tdOut"></div>
+        </div>
+        <div class="tdsteps" id="tdSteps"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="stats">
+    <div class="stat"><div class="n">3</div><div class="t" data-ko>휠</div><div class="t" data-en>Wheels</div>
+      <div class="d" data-ko>⇧ 변환 · ⌘ 도구 · ⌃ 동작</div><div class="d" data-en>⇧ Convert · ⌘ Tools · ⌃ Actions</div></div>
+    <div class="stat"><div class="n">50+</div><div class="t" data-ko>형식</div><div class="t" data-en>Formats</div>
+      <div class="d" data-ko>사진 · RAW · PDF · 문서 · 영상</div><div class="d" data-en>Photos · RAW · PDF · documents · video</div></div>
+    <div class="stat"><div class="n">6</div><div class="t" data-ko>동작</div><div class="t" data-en>Actions</div>
+      <div class="d" data-ko>AirDrop부터 터미널까지</div><div class="d" data-en>From AirDrop to Terminal</div></div>
+    <div class="stat"><div class="n">0</div><div class="t" data-ko>업로드</div><div class="t" data-en>Uploads</div>
+      <div class="d" data-ko>AI도 내 맥 먼저</div><div class="d" data-en>Even AI runs locally first</div></div>
+  </div>
+
+  <section id="why">
+    <div class="eyebrow" data-ko>왜 DragEdit인가</div><div class="eyebrow" data-en>Why DragEdit</div>
+    <h2><span data-ko>바꾸는 것에서 끝나지 않아요.</span><span data-en>It does more than convert.</span></h2>
+    <p class="sub"><span data-ko>내 맥 안의 AI가 문서를 읽고 고쳐요. 사진 작업에 필요한 내보내기는 한 번에 끝나요. 횟수 제한도 없어요.</span>
+      <span data-en>An AI on your own Mac reads and fixes documents. Photo exports take one drop. And there are no conversion limits.</span></p>
+    <div class="why">
+      <div class="wcard">
+        <div class="no">01</div>
+        <h3 data-ko>내 맥 안의 AI가 같이 일해요</h3><h3 data-en>A local AI works with you</h3>
+        <ul data-ko>
+          <li><strong>What is it?</strong> 문서를 놓으면 요약이 바로 써져요. Tab을 누르면 심층 분석. 계약서의 함정 조항도 잡아요.</li>
+          <li><strong>OCR 오타수정</strong> 불확실한 단어만 AI에게 보내요. 고친 곳은 검토 창에서 하나씩 보고 적용해요.</li>
+          <li><strong>⌥ Space 글자 팝업</strong> 어느 앱의 글자든 그 자리에서 고쳐요. 규칙으로 되는 일은 AI 없이 바로 끝나요.</li>
+          <li><strong>Ollama · LM Studio</strong> 계약서도 회의록도 내 컴퓨터 밖으로 나가지 않아요. 클라우드는 직접 켰을 때만.</li>
+        </ul>
+        <ul data-en>
+          <li><strong>What is it?</strong> Drop a document and a summary writes itself. Tab for a deep dive. It even spots risky contract clauses.</li>
+          <li><strong>OCR typo fix</strong> Only uncertain words go to the AI. Review each fix before it's applied.</li>
+          <li><strong>⌥ Space text popup</strong> Fix text in place, in any app. Rule-based jobs finish instantly without AI.</li>
+          <li><strong>Ollama · LM Studio</strong> Contracts and notes never leave your Mac. Cloud only if you turn it on.</li>
+        </ul>
+      </div>
+      <div class="wcard">
+        <div class="no">02</div>
+        <h3 data-ko>스캔 문서를 다시 지어요</h3><h3 data-en>Rebuild scanned pages</h3>
+        <ul data-ko>
+          <li><strong>종이 펴기</strong> 비스듬히 찍은 문서를 반듯하게 펴고 그림자를 걷어요.</li>
+          <li><strong>진짜 글자로</strong> 글자는 글자 인식으로 다시 써서 또렷하고 검색돼요.</li>
+          <li><strong>도표는 선으로</strong> 상자와 선은 벡터라 아무리 키워도 깨지지 않아요.</li>
+          <li><strong>검색되는 PDF</strong> 모양은 그대로 두고 보이지 않는 글자 층만 얹을 수도 있어요.</li>
+        </ul>
+        <ul data-en>
+          <li><strong>Flatten</strong> Straightens a photographed page and removes shadows.</li>
+          <li><strong>Real text</strong> Text is recognized and rewritten, sharp and searchable.</li>
+          <li><strong>Vector diagrams</strong> Boxes and lines stay crisp at any size.</li>
+          <li><strong>Searchable PDF</strong> Or keep the look and add an invisible text layer.</li>
+        </ul>
+      </div>
+      <div class="wcard big">
+        <div class="no">03</div>
+        <h3 data-ko>사진 하는 사람을 위해 만들었어요</h3><h3 data-en>Made for photographers</h3>
+        <div class="preset">
+          <div><b data-ko>웹용</b><b data-en>Web</b><span data-ko>긴 변 2048px · sRGB · 2MB 이하 · 위치 삭제. 내 이름을 넣어두면 작가·저작권도 자동으로. 블로그와 인스타에 바로.</span><span data-en>2048px long edge · sRGB · under 2 MB · location removed. Add your name once and artist and copyright are filled in. Ready to post.</span></div>
+          <div><b data-ko>클라이언트 샘플</b><b data-en>Client sample</b><span data-ko>고화질 · SAMPLE 워터마크(글자는 바꿀 수 있어요) · 위치 삭제. 시안 보낼 때 한 번에.</span><span data-en>High quality · SAMPLE watermark (customizable) · location removed. Proofs in one drop.</span></div>
+          <div><b data-ko>미리보기</b><b data-en>Preview</b><span data-ko>화면용 크기로 줄이고 색과 메타데이터는 전부 그대로.</span><span data-en>Screen size, with color and metadata fully kept.</span></div>
+        </div>
+        <ul data-ko>
+          <li><strong>RAW 그대로</strong> 후지 RAF 같은 RAW를 바로 넣어요.</li>
+          <li><strong>색과 정보 보존</strong> 색 프로필(ICC)과 EXIF는 지우라고 할 때만 지워요. 16비트는 16비트로 다루다가 저장할 때만 바꿔요.</li>
+          <li><strong>내 프리셋</strong> 크기·색·메타데이터·워터마크·형식을 고치고 복제해서 늘려요.</li>
+          <li><strong>수백 장도 한 번에</strong> 원본 옆에 하나씩 쌓이고 원본은 절대 덮어쓰지 않아요.</li>
+        </ul>
+        <ul data-en>
+          <li><strong>RAW in</strong> Drop Fujifilm RAF and other RAW files directly.</li>
+          <li><strong>Color and data kept</strong> ICC profiles and EXIF stay unless you remove them. 16-bit stays 16-bit until saving.</li>
+          <li><strong>Your presets</strong> Edit size, color, metadata, watermark and format. Duplicate to make more.</li>
+          <li><strong>Hundreds at once</strong> Results land next to each original. Nothing is overwritten.</li>
+        </ul>
+      </div>
+      <div class="wcard">
+        <div class="no">04</div>
+        <h3 data-ko>한국어와 한글 문서</h3><h3 data-en>Korean-ready</h3>
+        <ul data-ko>
+          <li><strong>한글(.hwpx)</strong> PDF와 문서를 한글로 바꾸고 한글에서도 바꿔요.</li>
+          <li><strong>한국어 OCR</strong> PDF 줄 끝에서 끊긴 한글 단어를 다시 이어 붙여요.</li>
+          <li><strong>한국어 · 영어</strong> 화면은 두 언어 모두.</li>
+        </ul>
+        <ul data-en>
+          <li><strong>Hangul (.hwpx)</strong> Convert PDFs and documents to and from Hangul.</li>
+          <li><strong>Korean OCR</strong> Rejoins Korean words split across PDF lines.</li>
+          <li><strong>Korean · English</strong> The whole app in both.</li>
+        </ul>
+      </div>
+      <div class="wcard">
+        <div class="no">05</div>
+        <h3 data-ko>제한 없이</h3><h3 data-en>No limits</h3>
+        <ul data-ko>
+          <li><strong>변환 횟수 한도 없음</strong> 몇 장을 바꾸든 그대로.</li>
+          <li><strong>오픈소스</strong> 코드는 <a href="https://github.com/rladlrwnd/hanlabong">GitHub</a>에 MIT 라이선스로 공개돼 있어요. 누구나 보고 고칠 수 있어요.</li>
+          <li><strong>가벼움</strong> 쉴 때는 CPU를 쓰지 않아요.</li>
+        </ul>
+        <ul data-en>
+          <li><strong>No conversion cap</strong> Convert as much as you like.</li>
+          <li><strong>Open source</strong> The code is on <a href="https://github.com/rladlrwnd/hanlabong">GitHub</a> under the MIT license.</li>
+          <li><strong>Lightweight</strong> Zero CPU while idle.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="wheels">
+    <div class="eyebrow" data-ko>세 가지 휠</div><div class="eyebrow" data-en>Three wheels</div>
+    <h2><span data-ko>키 하나로 휠이 바뀌어요.</span><span data-en>One key. A different wheel.</span></h2>
+    <p class="sub"><span data-ko>끌기 시작한 다음 키를 눌러요. 휠은 놓을 때까지 떠 있고 다른 키를 누르면 바로 바뀝니다. 칸을 옮길 때마다 트랙패드가 톡 울려요. 키는 설정에서 바꿀 수 있어요.</span>
+      <span data-en>Start dragging, then tap a key. The wheel stays until you drop, and another key switches it instantly. The trackpad ticks as you move between slots. Keys are configurable.</span></p>
+
+    <div class="mode">
+      <div>
+        <div class="keycap"><kbd>⇧</kbd><span data-ko>Shift · 변환</span><span data-en>Shift · Convert</span></div>
+        <div class="cards">
+          <div class="card"><h3 data-ko>사진 프리셋</h3><h3 data-en>Photo presets</h3>
+            <p data-ko>웹용은 2MB 이하와 위치 삭제. 클라이언트 샘플은 워터마크. 미리보기는 메타데이터 그대로. RAW도 바로.</p>
+            <p data-en>Web: under 2 MB, location removed. Client sample: watermarked. Preview: metadata kept. RAW works too.</p></div>
+          <div class="card"><h3 data-ko>문서는 양방향</h3><h3 data-en>Documents both ways</h3>
+            <p data-ko>Word에서 PDF로. PDF에서 Word·PowerPoint·Excel·EPUB·한글로. 마크다운도 그대로.</p>
+            <p data-en>Word to PDF. PDF to Word, PowerPoint, Excel, EPUB or Hangul. Markdown too.</p></div>
+          <div class="card"><h3 data-ko>스캔을 다시 짓기</h3><h3 data-en>Rebuild a scan</h3>
+            <p data-ko>사진 찍은 문서를 반듯하게 펴고 그림자를 걷어요. 글자는 진짜 글자로 도표는 선으로.</p>
+            <p data-en>Flattens a photographed page and lifts the shadows. Text becomes real text. Diagrams become vectors.</p></div>
+          <div class="card"><h3 data-ko>영상</h3><h3 data-en>Video</h3>
+            <p data-ko>1080p·HEVC·720p. MOV·MKV·WebM·AVI·GIF. 소리만 MP3로.</p>
+            <p data-en>1080p, HEVC, 720p. MOV, MKV, WebM, AVI, GIF. Audio out as MP3.</p></div>
+        </div>
+      </div>
+      <svg class="mini" id="miniConvert" viewBox="0 0 400 400" aria-hidden="true"></svg>
+    </div>
+
+    <div class="mode">
+      <svg class="mini" id="miniTools" viewBox="0 0 400 400" aria-hidden="true"></svg>
+      <div>
+        <div class="keycap"><kbd>⌘</kbd><span data-ko>Command · 도구</span><span data-en>Command · Tools</span></div>
+        <div class="cards">
+          <div class="card"><h3 data-ko>사진 편집</h3><h3 data-en>Edit photos</h3>
+            <p data-ko>비율 자르기·회전·반전·밝기·대비·채도. 유리 창에서 보면서.</p>
+            <p data-en>Crop to a ratio, rotate, flip, brightness, contrast, saturation. Live preview.</p></div>
+          <div class="card"><h3 data-ko>용량 줄이기</h3><h3 data-en>Shrink</h3>
+            <p data-ko>크기는 그대로 용량만. 또는 2MB·500KB 이하로 맞춰요.</p>
+            <p data-en>Same size, smaller file. Or fit under 2 MB or 500 KB.</p></div>
+          <div class="card"><h3 data-ko>영상 구간 자르기</h3><h3 data-en>Trim video</h3>
+            <p data-ko>재생하면서 시작과 끝을 정해요. 다시 인코딩 없이 빠르게.</p>
+            <p data-en>Set start and end while it plays. Fast, without re-encoding.</p></div>
+          <div class="card"><h3 data-ko>검색되는 PDF</h3><h3 data-en>Searchable PDF</h3>
+            <p data-ko>스캔 PDF에 보이지 않는 글자 층을 얹어요. 모양은 그대로.</p>
+            <p data-en>Adds an invisible text layer to a scanned PDF. Looks the same.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mode">
+      <div>
+        <div class="keycap"><kbd>⌃</kbd><span data-ko>Control · 동작</span><span data-en>Control · Actions</span></div>
+        <div class="cards">
+          <div class="card"><h3>AirDrop</h3><p data-ko>근처 애플 기기로 바로.</p><p data-en>Straight to a nearby Apple device.</p></div>
+          <div class="card"><h3 data-ko>띄워두기</h3><h3 data-en>Float</h3><p data-ko>화면 옆 유리 선반에 올려두고 나중에 끌어 써요.</p><p data-en>Park files on a glass shelf and drag them out later.</p></div>
+          <div class="card"><h3 data-ko>복사 · 이동</h3><h3 data-en>Copy · Move</h3><p data-ko>최근 폴더가 바깥 링에 나와요. 덮어쓰기는 없어요.</p><p data-en>Recent folders appear on the outer ring. Nothing is overwritten.</p></div>
+          <div class="card"><h3 data-ko>경로 복사 · 터미널</h3><h3 data-en>Copy path · Terminal</h3><p data-ko>파일 위치를 글자로. 그 폴더에서 터미널 열기.</p><p data-en>Copy the location as text. Open Terminal right there.</p></div>
+        </div>
+        <p class="sub" style="margin-top:14px;font-size:14px"><span data-ko>폴더나 여러 종류가 섞인 선택에도 돼요.</span><span data-en>Works with folders and mixed selections.</span></p>
+      </div>
+      <svg class="mini" id="miniActions" viewBox="0 0 400 400" aria-hidden="true"></svg>
+    </div>
+  </section>
+
+  <section id="ai">
+    <div class="eyebrow">AI</div>
+    <h2><span data-ko>필요할 때만. 내 맥에서 먼저.</span><span data-en>Only when needed. Local first.</span></h2>
+    <p class="sub"><span data-ko>규칙으로 되는 일은 AI를 부르지 않아요. 애매한 것만 내 컴퓨터의 AI(Ollama·LM Studio)가 처리하고 클라우드는 직접 켰을 때만 써요. 밖으로 나갈 땐 휠에 미리 표시돼요.</span>
+      <span data-en>Rules handle what rules can. Only the fuzzy parts go to an AI on your Mac (Ollama, LM Studio). Cloud is opt-in, and the wheel tells you before anything leaves.</span></p>
+    <div class="cards" style="margin-top:34px;grid-template-columns:repeat(3,1fr)">
+      <div class="card"><h3>What is it?</h3>
+        <p data-ko>문서를 놓으면 요약이 바로 써져요. Tab을 누르면 심층 분석. 긴 글은 나눠서 읽어요.</p>
+        <p data-en>Drop a document and the summary writes itself. Tab for a deep dive. Long text is read in parts.</p></div>
+      <div class="card"><h3 data-ko>OCR 오타수정</h3><h3 data-en>OCR typo fix</h3>
+        <p data-ko>문서 전체가 아니라 인식이 불확실한 곳만 AI에게. 고친 곳은 검토 창에서 하나씩 확인.</p>
+        <p data-en>Only uncertain words go to the AI, not the whole page. Review every fix before saving.</p></div>
+      <div class="card"><h3 data-ko>글자 팝업 ⌥ Space</h3><h3 data-en>Text popup ⌥ Space</h3>
+        <p data-ko>어느 앱에서든 글자를 고르고 ⌥ Space. 줄바꿈 정리부터 말로 하는 요청까지 그 자리에서.</p>
+        <p data-en>Select text in any app and press ⌥ Space. From fixing line breaks to plain-language requests, in place.</p></div>
+    </div>
+  </section>
+
+  <section id="formats">
+    <div class="eyebrow" data-ko>지원 형식</div><div class="eyebrow" data-en>Supported formats</div>
+    <h2><span data-ko>바꿀 수 있는 것들.</span><span data-en>What it converts.</span></h2>
+    <div class="formats">
+      <div class="fmt"><h3 data-ko>사진</h3><h3 data-en>Photos</h3><div class="chips">
+        <span class="chip">JPG</span><span class="chip">PNG</span><span class="chip">HEIC</span><span class="chip">AVIF</span><span class="chip">TIFF</span><span class="chip">PSD</span><span class="chip">GIF</span><span class="chip">BMP</span></div>
+        <div class="note" data-ko>RAW·WebP 입력 · 색 프로필·EXIF 보존 · 16비트 유지</div><div class="note" data-en>RAW & WebP input · ICC and EXIF kept · 16-bit preserved</div></div>
+      <div class="fmt"><h3>PDF →</h3><div class="chips">
+        <span class="chip">DOCX</span><span class="chip">PPTX</span><span class="chip">XLSX</span><span class="chip">JPG</span><span class="chip">PNG</span><span class="chip">EPUB</span><span class="chip">HWPX</span><span class="chip">MD</span><span class="chip">TXT</span><span class="chip">HTML</span></div>
+        <div class="note" data-ko>스캔한 쪽은 자동 OCR · 이미지 300DPI</div><div class="note" data-en>Scanned pages OCR'd automatically · images at 300 DPI</div></div>
+      <div class="fmt"><h3 data-ko>문서</h3><h3 data-en>Documents</h3><div class="chips">
+        <span class="chip">PDF</span><span class="chip">DOCX</span><span class="chip">HWPX</span><span class="chip">RTF</span><span class="chip">ODT</span><span class="chip">HTML</span><span class="chip">Markdown</span><span class="chip">TXT</span><span class="chip">EPUB</span></div>
+        <div class="note" data-ko>어느 방향으로나 · 제목·굵게·목록 유지</div><div class="note" data-en>Any direction · headings, bold and lists kept</div></div>
+      <div class="fmt"><h3 data-ko>영상</h3><h3 data-en>Video</h3><div class="chips">
+        <span class="chip">MP4</span><span class="chip">MOV</span><span class="chip">MKV</span><span class="chip">WebM</span><span class="chip">AVI</span><span class="chip">WMV</span><span class="chip">GIF</span><span class="chip">MP3</span><span class="chip">M4A</span></div>
+        <div class="note" data-ko>1080p·HEVC·720p·480p · MP4·MOV 밖의 형식은 ffmpeg 필요</div><div class="note" data-en>1080p, HEVC, 720p, 480p · formats beyond MP4/MOV need ffmpeg</div></div>
+      <div class="fmt"><h3 data-ko>스캔 → 벡터</h3><h3 data-en>Scan → vector</h3><div class="chips">
+        <span class="chip">SVG</span><span class="chip">PDF</span></div>
+        <div class="note" data-ko>글자는 진짜 글자로 · 선·상자·로고는 벡터로</div><div class="note" data-en>Text as real text · lines, boxes and logos as vectors</div></div>
+      <div class="fmt"><h3 data-ko>요약 (What is it?)</h3><h3 data-en>Summary (What is it?)</h3><div class="chips">
+        <span class="chip">PDF</span><span class="chip">DOCX</span><span class="chip">PPTX</span><span class="chip">XLSX</span><span class="chip">HWPX</span><span class="chip">CSV</span><span class="chip">JSON</span><span class="chip">Code</span></div>
+        <div class="note" data-ko>사진·영상·소리를 뺀 거의 모든 글</div><div class="note" data-en>Almost any text file, beyond photos, video and audio</div></div>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <div class="eyebrow" data-ko>개인정보</div><div class="eyebrow" data-en>Privacy</div>
+    <h2><span data-ko>파일은 내 맥을 떠나지 않아요.</span><span data-en>Your files stay on your Mac.</span></h2>
+    <div class="privacy">
+      <div class="pv"><h3 data-ko>온라인 변환기</h3><h3 data-en>Online converters</h3>
+        <p data-ko>파일을 남의 서버에 올려야 해요. 사진 속 위치 정보와 문서 내용까지 같이요. 언제 지워지는지는 알 수 없어요.</p>
+        <p data-en>You upload a copy to someone else's server, location data and all. When it's deleted is out of your hands.</p></div>
+      <div class="pv good"><h3>DragEdit</h3>
+        <p data-ko>변환·도구·동작 모두 내 맥 안에서. 원본은 절대 덮어쓰지 않아요. 로그에도 파일 내용과 이름을 남기지 않아요.</p>
+        <p data-en>Conversions, tools and actions all run locally. Originals are never overwritten. Logs never record file contents or names.</p></div>
+    </div>
+  </section>
+
+  <div class="cta" id="get">
+    <h2><span data-ko>일은 줄이고<br>흐름은 그대로.</span><span data-en>Less busywork.<br>Same flow.</span></h2>
+    <ul>
+      <li data-ko>세 가지 휠 · 50가지 넘는 형식 · 동작 6가지</li><li data-en>Three wheels · 50+ formats · 6 actions</li>
+      <li data-ko>사진 프리셋·편집·스캔 다시 짓기</li><li data-en>Photo presets, editing, scan rebuilding</li>
+      <li data-ko>What is it? 요약과 ⌥ Space 글자 팝업</li><li data-en>What is it? summaries and the ⌥ Space text popup</li>
+      <li data-ko>업로드 없이 내 맥에서</li><li data-en>Local, no uploads</li>
+    </ul>
+    <a class="btn" href="https://github.com/rladlrwnd/hanlabong/releases/latest"><span data-ko>다운로드 (.pkg)</span><span data-en>Download (.pkg)</span></a><a class="alt" href="https://github.com/rladlrwnd/hanlabong">GitHub</a>
+    <div class="warn" data-ko>아직 애플 공증 전이라 처음 열 때 경고가 떠요. 시스템 설정 › 개인정보 보호 및 보안에서 "그래도 열기"를 누르면 설치 마법사가 열려요.</div>
+    <div class="warn" data-en>Not notarized yet: on first open, go to System Settings › Privacy &amp; Security › Open Anyway to start the installer.</div>
+    <div class="req" data-ko>macOS 26 이상 · Apple silicon</div><div class="req" data-en>macOS 26 or later · Apple silicon</div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div data-ko>DragEdit · MIT 라이선스. 파일 휠의 생각은 DragShift(MIT)에서 착안했어요. 빛줄기·생각 구슬은 libraries.dev(MIT). 이 페이지의 휠은 흉내 낸 체험판이에요.</div>
+    <div data-en>DragEdit · MIT License. The file wheel idea was inspired by DragShift (MIT). Border beam and thinking orbs from libraries.dev (MIT). The wheel on this page is a simulation.</div>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // ---------- 언어 ----------
+  const saved = (() => { try { return localStorage.getItem('de-lang'); } catch { return null; } })();
+  let lang = saved || ((navigator.language || 'ko').startsWith('ko') ? 'ko' : 'en');
+  function setLang(next) {
+    lang = next; document.documentElement.lang = next;
+    document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === next));
+    try { localStorage.setItem('de-lang', next); } catch {}
+    renderMinis();
+  }
+  document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+  const T = (ko, en) => lang === 'ko' ? ko : en;
+
+  // ---------- 휠 데이터 ----------
+  const W = {
+    image: {
+      convert: [
+        { t: 'JPG', kids: [['웹용', 'Web', '_web.jpg'], ['클라이언트 샘플', 'Client sample', '_sample.jpg'], ['미리보기', 'Preview', '_preview.jpg']] },
+        { t: 'PDF', kids: [['그냥 PDF', 'Plain PDF', '.pdf'], ['글자 넣은 PDF', 'Searchable', '_ocr.pdf'], ['벡터 PDF', 'Vector PDF', '_vector.pdf'], ['벡터 SVG', 'Vector SVG', '_vector.svg']] },
+        { t: 'TXT', kids: [['OCR 텍스트', 'OCR text', '.txt'], ['AI 오타수정', 'AI typo fix', '.txt']] },
+        { t: ['형식', 'Format'], kids: [['PNG', 'PNG', '.png'], ['HEIC', 'HEIC', '.heic'], ['AVIF', 'AVIF', '.avif'], ['TIFF', 'TIFF', '.tiff'], ['PSD', 'PSD', '.psd']] },
+      ],
+      tools: [
+        { t: ['편집', 'Edit'], out: '_edit.jpg' },
+        { t: ['회전', 'Rotate'], kids: [['시계 90°', 'Right 90°', '_rotated.jpg'], ['반시계 90°', 'Left 90°', '_rotated.jpg'], ['180°', '180°', '_rotated.jpg']] },
+        { t: ['반전', 'Flip'], kids: [['좌우', 'Horizontal', '_flipped.jpg'], ['상하', 'Vertical', '_flipped.jpg']] },
+        { t: ['용량', 'Shrink'], kids: [['크기 그대로', 'Same size', '_small.jpg'], ['2MB 이하', '< 2 MB', '_small.jpg'], ['500KB 이하', '< 500 KB', '_small.jpg']] },
+      ],
+    },
+    pdf: {
+      convert: [{ t: 'Word', out: '.docx' }, { t: ['텍스트', 'Text'], kids: [['TXT', 'TXT', '.txt'], ['Markdown', 'Markdown', '.md']] },
+        { t: ['이미지', 'Image'], kids: [['JPG', 'JPG', '-001.jpg'], ['PNG', 'PNG', '-001.png']] }, { t: 'PPT', out: '.pptx' }, { t: 'Excel', out: '.xlsx' },
+        { t: 'EPUB', out: '.epub' }, { t: ['기타', 'More'], kids: [['HTML', 'HTML', '.html'], ['RTF', 'RTF', '.rtf'], ['ODT', 'ODT', '.odt']] }, { t: ['한글', 'Hangul'], out: '.hwpx' }],
+      tools: [{ t: ['글자 넣기', 'Add text'], out: '_ocr.pdf' }, { t: 'What is it?', ai: true }],
+    },
+    video: {
+      convert: [{ t: 'MP4', kids: [['1080p', '1080p', '_1080p.mp4'], ['HEVC', 'HEVC', '_hevc.mp4'], ['720p', '720p', '_720p.mp4'], ['480p', '480p', '_480p.mp4']] },
+        { t: 'MOV', out: '.mov' }, { t: 'MKV', out: '.mkv' }, { t: 'WebM', out: '.webm' }, { t: 'AVI', out: '.avi' }, { t: 'WMV', out: '.wmv' }, { t: 'GIF', out: '.gif' },
+        { t: ['소리', 'Audio'], kids: [['MP3', 'MP3', '.mp3'], ['M4A', 'M4A', '.m4a']] }],
+      tools: [{ t: ['편집', 'Edit'], out: '_edit.mp4' }, { t: ['소리 끄기', 'Mute'], out: '_muted.mp4' }, { t: ['용량', 'Shrink'], out: '_small.mp4' }],
+    },
+    doc: {
+      convert: [{ t: 'PDF', out: '.pdf' }, { t: 'Word', out: '.docx' }, { t: ['텍스트', 'Text'], kids: [['TXT', 'TXT', '.txt']] }, { t: 'HTML', out: '.html' }, { t: 'EPUB', out: '.epub' }, { t: ['기타', 'More'], kids: [['한글', 'Hangul', '.hwpx'], ['RTF', 'RTF', '.rtf'], ['ODT', 'ODT', '.odt']] }],
+      tools: [{ t: 'What is it?', ai: true }],
+    },
+  };
+  const ACTIONS = [{ t: 'AirDrop', act: true }, { t: ['띄워두기', 'Float'], act: true }, { t: ['복사', 'Copy'], kids: [['다운로드', 'Downloads', 'copy'], ['폴더 고르기…', 'Choose…', 'copy']] },
+    { t: ['이동', 'Move'], kids: [['데스크탑', 'Desktop', 'move'], ['폴더 고르기…', 'Choose…', 'move']] }, { t: ['경로 복사', 'Copy path'], act: true }, { t: ['터미널', 'Terminal'], act: true }];
+  const title = t => Array.isArray(t) ? T(t[0], t[1]) : t;
+  const ICON = {
+    photo: 'M4 6h16v12H4z M4 15l4-4 4 4 3-3 5 5 M15.5 9.5h.01',
+    doc: 'M7 3h7l4 4v14H7z M14 3v4h4',
+    text: 'M5 7h14 M5 12h14 M5 17h9',
+    format: 'M4 9h13l-3-3 M20 15H7l3 3',
+    film: 'M4 5h16v14H4z M8 5v14 M16 5v14 M4 9h4 M4 15h4 M16 9h4 M16 15h4',
+    music: 'M9 18V6l10-2v12 M9 18a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z M19 16a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z',
+    gif: 'M4 6h16v12H4z M9 10v4 M12 10h3 M12 12h2',
+    crop: 'M7 3v14h14 M3 7h14v14',
+    rotate: 'M20 12a8 8 0 1 1-3-6.3 M20 4v5h-5',
+    flip: 'M12 3v18 M9 7 4 17h5z M15 7l5 10h-5z',
+    shrink: 'M4 14h6v6 M20 10h-6V4 M14 10l6-6 M4 20l6-6',
+    scissors: 'M6 7a2 2 0 1 0 0-.01 M6 17a2 2 0 1 0 0-.01 M8 8l12 10 M8 16 20 6',
+    mute: 'M4 9v6h4l5 4V5L8 9z M17 9l4 6 M21 9l-4 6',
+    sparkles: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z M18 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z',
+    airdrop: 'M12 13a1 1 0 1 0 0-.01 M8.5 16.5a5 5 0 1 1 7 0 M5.6 19.4a9 9 0 1 1 12.8 0',
+    pin: 'M9 3h6l-1 6 3 3H7l3-3z M12 12v9',
+    copy: 'M8 8h11v13H8z M5 16V3h11',
+    folder: 'M3 6h6l2 2h10v11H3z',
+    link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1 M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
+    terminal: 'M4 5h16v14H4z M7 10l3 2-3 2 M12 15h5',
+    question: 'M5 5h14v10h-7l-4 4v-4H5z M10 9a2 2 0 1 1 2.5 1.9c-.5.2-.5.6-.5 1.1 M12 13.5h.01',
+    book: 'M5 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H5z M19 4h-6 M19 4v14h-6',
+    globe: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M3 12h18 M12 3c3 3 3 15 0 18 M12 3c-3 3-3 15 0 18',
+    person: 'M5 4h14v16H5z M12 11a2.5 2.5 0 1 0 0-.01 M8 17c1-2 2.4-3 4-3s3 1 4 3',
+    eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z',
+    vector: 'M4 18c4-10 12-10 16 0 M4 18h.01 M20 18h.01 M12 8h.01',
+    table: 'M4 5h16v14H4z M4 10h16 M4 15h16 M10 5v14',
+    slides: 'M4 5h16v11H4z M12 16v4 M8 20h8',
+    file: 'M7 3h7l4 4v14H7z',
+  };
+  const ICON_OF = {
+    jpg: 'photo', pdf: 'doc', txt: 'text', '형식': 'format', format: 'format', word: 'doc', text: 'text', image: 'photo', '텍스트': 'text', '이미지': 'photo',
+    ppt: 'slides', excel: 'table', epub: 'book', '기타': 'file', more: 'file', '한글': 'doc', hangul: 'doc',
+    mp4: 'film', mov: 'film', mkv: 'film', webm: 'film', avi: 'film', wmv: 'film', gif: 'gif', '소리': 'music', audio: 'music', mp3: 'music', m4a: 'music',
+    '편집': 'crop', edit: 'crop', '회전': 'rotate', rotate: 'rotate', '반전': 'flip', flip: 'flip', '용량': 'shrink', shrink: 'shrink',
+    '소리 끄기': 'mute', mute: 'mute', '글자 넣기': 'text', 'add text': 'text', 'what is it?': 'question',
+    airdrop: 'airdrop', '띄워두기': 'pin', float: 'pin', '복사': 'copy', copy: 'copy', '이동': 'folder', move: 'folder', '경로 복사': 'link', 'copy path': 'link', '터미널': 'terminal', terminal: 'terminal',
+    '웹용': 'globe', web: 'globe', '클라이언트 샘플': 'person', 'client sample': 'person', '미리보기': 'eye', preview: 'eye',
+    '벡터 pdf': 'vector', '벡터 svg': 'vector', 'vector pdf': 'vector', 'vector svg': 'vector', '그냥 pdf': 'doc', 'plain pdf': 'doc', '글자 넣은 pdf': 'text', searchable: 'text',
+    'ocr 텍스트': 'text', 'ocr text': 'text', 'ai 오타수정': 'sparkles', 'ai typo fix': 'sparkles',
+  };
+  function iconFor(name) { const k = String(name).toLowerCase(); return ICON[ICON_OF[k]] || (/^\d+p$|hevc/i.test(k) ? ICON.film : /°|시계|right|left/i.test(k) ? ICON.rotate : /mb|kb|크기|same/i.test(k) ? ICON.shrink : /폴더|folder|choose|다운로드|downloads|데스크탑|desktop/i.test(k) ? ICON.folder : /좌우|상하|horizontal|vertical/i.test(k) ? ICON.flip : ICON.file); }
+
+
+  // ---------- 꽃잎 그리기 ----------
+  const C = 200, R0 = 58, R1 = 120, R2a = 128, R2b = 186, SLOT = 45, CHILD = 38, GAP = 5;
+  function pt(r, deg) { const a = deg * Math.PI / 180; return [C + r * Math.sin(a), C - r * Math.cos(a)]; }
+  function petalPath(ri, ro, s, e, cr = 10) {
+    const steps = 18; let d = '';
+    const k = Math.min(cr, (ro - ri) / 2 - 1);
+    const dOut = k / ro * 180 / Math.PI, dIn = k / ri * 180 / Math.PI;
+    const p0 = pt(ro, s + dOut); d += `M${p0[0]} ${p0[1]}`;
+    for (let i = 1; i <= steps; i++) { const p = pt(ro, s + dOut + (e - s - 2 * dOut) * i / steps); d += `L${p[0]} ${p[1]}`; }
+    let c = pt(ro, e), q = pt(ro - k, e); d += `Q${c[0]} ${c[1]} ${q[0]} ${q[1]}`;
+    q = pt(ri + k, e); d += `L${q[0]} ${q[1]}`;
+    c = pt(ri, e); q = pt(ri, e - dIn); d += `Q${c[0]} ${c[1]} ${q[0]} ${q[1]}`;
+    for (let i = 1; i <= steps; i++) { const p = pt(ri, e - dIn - (e - s - 2 * dIn) * i / steps); d += `L${p[0]} ${p[1]}`; }
+    c = pt(ri, s); q = pt(ri + k, s); d += `Q${c[0]} ${c[1]} ${q[0]} ${q[1]}`;
+    q = pt(ro - k, s); d += `L${q[0]} ${q[1]}`;
+    c = pt(ro, s); q = pt(ro, s + dOut); d += `Q${c[0]} ${c[1]} ${q[0]} ${q[1]}Z`;
+    return d;
+  }
+  function childAngles(parent, i, n) { const pitch = CHILD + GAP, span = (n - 1) * pitch, mid = parent * SLOT - span / 2 + i * pitch; return [mid - CHILD / 2, mid + CHILD / 2]; }
+  function labelAt(r, deg, text, size, icon = true) {
+    const [x, y] = pt(r, deg);
+    const glyph = icon ? `<g transform="translate(${x - 8.5} ${y - 19}) scale(.71)"><path class="wicon" d="${iconFor(text)}"/></g>` : '';
+    return glyph + `<text class="plabel" x="${x}" y="${y + (icon ? 9 : 0)}" style="font-size:${size}px">${text}</text>`;
+  }
+
+  function wheelSVG(items, mode, hover, expanded, center) {
+    let s = `<circle class="disk" cx="200" cy="200" r="${R1 + 10}"/>`;
+    items.forEach((it, i) => {
+      if (!it) { s += `<path class="petal" d="${petalPath(R0, R1, i * SLOT - SLOT / 2 + 2.5, i * SLOT + SLOT / 2 - 2.5)}"/>`; return; }
+      const hot = hover && hover.slot === i && hover.child == null;
+      s += `<path class="petal${hot || expanded === i ? ' hot' : ''}" d="${petalPath(R0, R1, i * SLOT - SLOT / 2 + 2.5, i * SLOT + SLOT / 2 - 2.5)}"/>`;
+      s += labelAt((R0 + R1) / 2, i * SLOT, title(it.t), title(it.t).length > 6 ? 10.5 : 12);
+    });
+    s += `<g class="ring2${expanded == null ? ' hide' : ''}">`;
+    if (expanded != null && items[expanded] && items[expanded].kids) {
+      const kids = items[expanded].kids;
+      kids.forEach((k, i) => {
+        const [a, b] = childAngles(expanded, i, kids.length);
+        const hot = hover && hover.slot === expanded && hover.child === i;
+        s += `<path class="petal${hot ? ' hot' : ''}" d="${petalPath(R2a, R2b, a, b, 9)}"/>`;
+        const name = T(k[0], k[1]);
+        s += labelAt((R2a + R2b) / 2, (a + b) / 2, name, name.length > 5 ? 9.5 : 11);
+      });
+    }
+    s += `</g><circle cx="200" cy="200" r="${R0 - 6}" class="petal"/>`;
+    const modeName = { convert: T('변환', 'Convert'), tools: T('도구', 'Tools'), actions: T('동작', 'Actions') }[mode];
+    if (center) s += `<text class="ctitle" x="200" y="196">${center[0]}</text><text class="csub" x="200" y="214">${center[1] || ''}</text>`;
+    else s += `<text class="ctitle" x="200" y="196">${modeName}</text><text class="csub" x="200" y="214">Drop on a slot</text>`;
+    return s;
+  }
+
+  // ---------- 체험판 ----------
+  const stage = document.getElementById('stage'), wheel = document.getElementById('wheel'), svg = document.getElementById('wheelSvg'), toast = document.getElementById('toast');
+  const FILES = [
+    { name: 'photo.jpg', kind: 'image', color: 'linear-gradient(135deg,#ff9a5a,#ff6b8a)', label: 'JPG' },
+    { name: 'report.pdf', kind: 'pdf', color: 'linear-gradient(135deg,#ff5e5e,#d92f4b)', label: 'PDF' },
+    { name: 'clip.mp4', kind: 'video', color: 'linear-gradient(135deg,#7b6cff,#4b3fd1)', label: 'MP4' },
+    { name: 'notes.docx', kind: 'doc', color: 'linear-gradient(135deg,#4c8dff,#2a5fd6)', label: 'DOCX' },
+    { name: ['사진 폴더', 'Photos'], kind: 'folder', color: 'linear-gradient(135deg,#7cc7ff,#3a9bea)', label: '' },
+  ];
+  const slotsXY = [[0.12, 0.30], [0.12, 0.62], [0.88, 0.30], [0.88, 0.62], [0.50, 0.40]];
+  const madeLayer = document.createElement('div'); stage.appendChild(madeLayer);
+  const fileEls = FILES.map((f, i) => {
+    const el = document.createElement('div'); el.className = 'file';
+    el.innerHTML = `<div class="icon" style="background:${f.color}">${f.kind === 'folder' ? '<svg width="34" height="28" viewBox="0 0 34 28"><path d="M2 6a3 3 0 0 1 3-3h8l3 3h13a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3z" fill="rgba(255,255,255,.85)"/></svg>' : f.label}</div><span class="name"></span>`;
+    el._file = f; el._home = slotsXY[i]; stage.appendChild(el); return el;
+  });
+  function placeFiles() {
+    const r = stage.getBoundingClientRect();
+    fileEls.forEach(el => { el.style.left = (el._home[0] * r.width - 46) + 'px'; el.style.top = (el._home[1] * r.height - 40) + 'px'; el.querySelector('.name').textContent = title(el._file.name); });
+  }
+
+  let drag = null, mode = null, items = null, hover = null, expanded = null, wheelPos = null;
+  function layout(kind, m) { if (m === 'actions' || kind === 'folder') return [ACTIONS, 'actions']; return [W[kind][m], m]; }
+  function openWheel(m) {
+    if (!drag) return;
+    const [list, actual] = layout(drag.file.kind, m); mode = actual; items = list.slice(0, 8);
+    while (items.length < 8) items.push(null);
+    if (!wheelPos) { wheelPos = { ...drag.pos }; const r = stage.getBoundingClientRect(); wheelPos.x = Math.min(Math.max(wheelPos.x, 120), r.width - 120); wheelPos.y = Math.min(Math.max(wheelPos.y, 150), r.height - 120); }
+    wheel.style.left = wheelPos.x + 'px'; wheel.style.top = wheelPos.y + 'px'; wheel.classList.add('show');
+    hover = null; expanded = null; draw();
+    document.querySelectorAll('.key').forEach(k => k.classList.toggle('on', k.dataset.mode === mode));
+  }
+  function closeWheel() { wheel.classList.remove('show'); wheelPos = null; mode = null; document.querySelectorAll('.key').forEach(k => k.classList.remove('on')); }
+  function centerText() {
+    const it = current(); if (!it) return null;
+    if (it.ai) return ['What is it?', T('요약 · Tab으로 심층 분석', 'Summary · Tab for more')];
+    if (it.kids && hover.child == null) return [title(it.t), T('바깥 칸에 놓기', 'Drop on outer slot')];
+    return [hover.child != null ? T(it[0], it[1]) : title(it.t), T('놓으면 실행', 'Drop to run')];
+  }
+  function current() { if (!hover) return null; const p = items[hover.slot]; if (!p) return null; return hover.child != null ? p.kids[hover.child] : p; }
+  function draw() { svg.innerHTML = wheelSVG(items, mode, hover, expanded, centerText()); }
+  function hitTest(x, y) {
+    if (!wheelPos) return;
+    const dx = x - wheelPos.x, dy = y - wheelPos.y, r = Math.hypot(dx, dy) * (400 / wheel.offsetWidth);
+    let deg = Math.atan2(dx, -dy) * 180 / Math.PI; if (deg < 0) deg += 360;
+    let next = null;
+    if (expanded != null && r >= R2a && r <= R2b) {
+      const n = items[expanded].kids.length;
+      for (let i = 0; i < n; i++) { const [a, b] = childAngles(expanded, i, n); const mid = (a + b) / 2; let d = Math.abs(((deg - mid) % 360 + 540) % 360 - 180); if (d <= CHILD / 2) next = { slot: expanded, child: i }; }
+    } else if (r >= R0 && r <= R1 + 6) {
+      const slot = Math.round(deg / SLOT) % 8; if (items[slot]) next = { slot, child: null };
+    } else if (r < R0) { expanded = null; }
+    if (next && next.child == null) expanded = items[next.slot].kids ? next.slot : null;
+    const changed = JSON.stringify(next) !== JSON.stringify(hover);
+    if (next || r < R0) { if (changed) hover = next; }
+    else if (changed && !(expanded != null)) hover = null;
+    draw();
+  }
+  function say(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(say.t); say.t = setTimeout(() => toast.classList.remove('show'), 2600); }
+  function drop() {
+    const it = current(), f = drag.file, base = title(f.name).replace(/\.[^.]+$/, '');
+    if (!it || (it.kids && hover.child == null)) { say(T('칸 위에 놓아야 해요', 'Drop it on a slot')); return; }
+    if (it.ai) { say(T('What is it? — 요약 창이 열려요. Tab을 누르면 심층 분석.', 'What is it? opens a summary. Tab for a deep dive.')); return; }
+    if (it.act) { say({ AirDrop: T('AirDrop 창이 열려요', 'AirDrop sheet opens') }[title(it.t)] || T(`${title(it.t)} 완료`, `${title(it.t)} done`)); return; }
+    if (it.out === undefined && Array.isArray(it) && (it[2] === 'copy' || it[2] === 'move')) { say(T(`${it[0]}(으)로 ${it[2] === 'copy' ? '복사' : '이동'}했어요`, `${it[2] === 'copy' ? 'Copied' : 'Moved'} to ${it[1]}`)); return; }
+    if (!Array.isArray(it) && it.out && it.out.startsWith('_edit')) { say(T('편집 창이 열려요 — 자르기·회전·보정', 'The editor opens — crop, rotate, adjust')); return; }
+    const suffix = Array.isArray(it) ? it[2] : it.out;
+    const made = document.createElement('div'); made.className = 'file made';
+    made.innerHTML = `<div class="icon" style="background:linear-gradient(135deg,#9ad48a,#3fa36b)">${suffix.split('.').pop().toUpperCase()}</div><span class="name">${base}${suffix}</span>`;
+    const r = stage.getBoundingClientRect(), home = drag.el._home;
+    made.style.left = (home[0] * r.width - 46 + (home[0] > .5 ? -100 : 100)) + 'px'; made.style.top = (home[1] * r.height - 40) + 'px';
+    madeLayer.appendChild(made); setTimeout(() => made.remove(), 4200);
+    say(T(`${base}${suffix} — 원본 옆에 저장됐어요`, `${base}${suffix} — saved next to the original`));
+  }
+
+  fileEls.forEach(el => el.addEventListener('pointerdown', e => {
+    e.preventDefault(); el.setPointerCapture(e.pointerId);
+    const r = stage.getBoundingClientRect();
+    const ghost = el.cloneNode(true); ghost.classList.add('ghost'); ghost.style.left = el.style.left; ghost.style.top = el.style.top; stage.appendChild(ghost);
+    el.classList.add('dragging');
+    const er = el.getBoundingClientRect();
+    drag = { el, ghost, file: el._file, pos: { x: e.clientX - r.left, y: e.clientY - r.top }, grab: { x: e.clientX - er.left, y: e.clientY - er.top } };
+    if (e.shiftKey) openWheel('convert'); else if (e.metaKey) openWheel('tools');
+  }));
+  stage.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const r = stage.getBoundingClientRect(); drag.pos = { x: e.clientX - r.left, y: e.clientY - r.top };
+    // 잡은 자리 그대로 끌린다(맥에서처럼 커서가 아이콘 위 잡은 곳에)
+    drag.el.style.left = (drag.pos.x - drag.grab.x) + 'px'; drag.el.style.top = (drag.pos.y - drag.grab.y) + 'px';
+    if (mode) hitTest(drag.pos.x, drag.pos.y);
+  });
+  function end() {
+    if (!drag) return;
+    if (mode) drop();
+    drag.el.classList.remove('dragging'); drag.ghost.remove(); drag = null; closeWheel(); placeFiles();
+  }
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+  const keyMap = { Shift: 'convert', Meta: 'tools', Control: 'actions' };
+  window.addEventListener('keydown', e => { const m = keyMap[e.key]; if (m && drag) { e.preventDefault(); openWheel(m); } });
+  // 터치·마우스용 단추: 누르고 있는 동안 끌면 그 휠 / 끌기 전에 누르면 다음 끌기에 적용
+  let armed = null;
+  document.querySelectorAll('.key').forEach(k => k.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    if (drag) openWheel(k.dataset.mode); else { armed = k.dataset.mode; document.querySelectorAll('.key').forEach(x => x.classList.toggle('on', x === k)); say(T('이제 파일을 끌어요', 'Now drag a file')); }
+  }));
+  fileEls.forEach(el => el.addEventListener('pointerdown', () => { if (armed) { const m = armed; armed = null; setTimeout(() => openWheel(m), 120); } }));
+
+  // ---------- 섹션의 작은 휠 ----------
+  function renderMinis() {
+    const conv = W.image.convert.slice(); while (conv.length < 8) conv.push(null);
+    document.getElementById('miniConvert').innerHTML = wheelSVG(conv, 'convert', { slot: 0, child: 0 }, 0, [T('웹용', 'Web'), T('놓으면 실행', 'Drop to run')]);
+    const tools = W.image.tools.slice(); while (tools.length < 8) tools.push(null);
+    document.getElementById('miniTools').innerHTML = wheelSVG(tools, 'tools', { slot: 3, child: 1 }, 3, [T('2MB 이하', '< 2 MB'), T('놓으면 실행', 'Drop to run')]);
+    const acts = ACTIONS.slice(); while (acts.length < 8) acts.push(null);
+    document.getElementById('miniActions').innerHTML = wheelSVG(acts, 'actions', { slot: 1, child: null }, null, [T('띄워두기', 'Float'), T('놓으면 실행', 'Drop to run')]);
+    placeFiles();
+    if (items && mode) draw();
+  }
+  window.addEventListener('resize', placeFiles);
+  setLang(lang);
+
+  // ---------- 글자 팝업 움직이는 그림 (AI라서 직접 체험 대신 저절로 돌아가는 장면) ----------
+  (() => {
+    const doc = document.getElementById('tdDoc'), key = document.getElementById('tdKey'), pop = document.getElementById('tdPop');
+    const inp = document.getElementById('tdIn'), list = document.getElementById('tdList'), out = document.getElementById('tdOut'), steps = document.getElementById('tdSteps');
+    const agentEl = document.getElementById('tdAgent'), prevEl = document.getElementById('tdPrev');
+    if (!doc) return;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const S = () => ({
+      before: T('회의록 정리\n\n', 'Meeting notes\n\n'),
+      messy: T('이번 전시는 11월 14일부터\n23일까지 열흘간 진행\n되며 대관료는 총 180만원\n이다. 오프닝은 14일 저녁\n7시에 한다.', 'The show runs from Nov 14\nto Nov 23, ten days in\ntotal, and the rental fee\nis 1.8M won. The opening\nis on the 14th at 7 pm.'),
+      joined: T('이번 전시는 11월 14일부터 23일까지 열흘간 진행되며 대관료는 총 180만원이다. 오프닝은 14일 저녁 7시에 한다.', 'The show runs from Nov 14 to Nov 23, ten days in total, and the rental fee is 1.8M won. The opening is on the 14th at 7 pm.'),
+      polite: T('이번 전시는 11월 14일부터 23일까지 열흘간 진행되며, 대관료는 총 180만 원입니다. 오프닝은 14일 저녁 7시에 열립니다.', 'Our exhibition will run from November 14 to 23. The venue fee totals 1.8 million won, and the opening reception begins at 7 p.m. on the 14th.'),
+      ask: T('존댓말로 바꿔줘', 'Make it sound formal'),
+      skills: [[T('문장마다 줄바꿈', 'Line per sentence'), '⌘1', 'text'], [T('한 줄로 합치기', 'Join into one line'), '⌘2', 'join'], [T('공백·빈 줄 정리', 'Tidy spaces'), '⌘3', 'sparkles'], [T('줄마다 글머리표', 'Bullet every line'), '⌘4', 'list']],
+      stepNames: [T('고르기', 'Select'), '⌥ Space', T('스킬', 'Skill'), T('AI에게 말로', 'Ask AI')],
+      pill: T('gemma · 이 컴퓨터', 'gemma · on this Mac'),
+      ph: T('요청하거나 “…스킬 만들어줘”', 'Ask anything, or “make a skill that…”'),
+      writing: T('gemma가 쓰는 중', 'gemma is writing'),
+    });
+    let run = 0;
+    const wait = ms => new Promise(r => setTimeout(r, reduce ? Math.min(ms, 400) : ms));
+    function stepOn(i) { [...steps.children].forEach((s, k) => s.classList.toggle('on', k === i)); }
+    function render(text, selected) { doc.innerHTML = ''; const a = document.createElement('span'); a.textContent = S().before; const b = document.createElement('span'); b.className = 'sel' + (selected ? ' on' : ''); b.textContent = text; doc.append(a, b); return b; }
+    // 선택한 글자 바로 아래에 띄우되, 창 아래로 넘치면 위로 올린다(팝업 실제 높이로 잰다)
+    function placePop(sel) { const r = sel.getBoundingClientRect(), w = doc.parentElement.getBoundingClientRect(); pop.style.top = Math.max(46, Math.min(r.bottom - w.top + 12, w.height - pop.offsetHeight - 54)) + 'px'; }
+    const LIST_ICON = { text: 'M5 7h14 M5 12h14 M5 17h9', join: 'M4 12h14 M14 8l4 4-4 4 M20 6v12', sparkles: ICON.sparkles, list: 'M9 7h11 M9 12h11 M9 17h11 M5 7h.01 M5 12h.01 M5 17h.01' };
+    function showInput(text, typing) {
+      agentEl.innerHTML = `<span class="bot">★</span>gemma <span class="chev">⌄</span>`;
+      inp.innerHTML = text ? `<span>${text}</span>${typing ? '<span class="caret"></span>' : ''}` : `<span class="caret"></span><span class="ph">${S().ph}</span>`;
+      prevEl.textContent = S().messy.replace(/\n/g, ' ↩ ').slice(0, 60) + '…';
+    }
+    function showList(hot) { list.style.display = ''; list.innerHTML = S().skills.map((s, i) => `<div class="${i === hot ? 'hot' : ''}"><svg viewBox="0 0 24 24"><path class="wicon" d="${LIST_ICON[s[2]]}"/></svg><span>${s[0]}</span><kbd>${s[1]}</kbd></div>`).join(''); }
+    async function loop() {
+      const me = ++run, s = S();
+      steps.innerHTML = s.stepNames.map(n => `<span>${n}</span>`).join('');
+      const alive = () => me === run;
+      // 1. 글자 고르기
+      pop.classList.remove('on'); out.classList.remove('on'); key.classList.remove('on', 'press'); stepOn(0);
+      let sel = render(s.messy, false); await wait(900); if (!alive()) return;
+      sel.classList.add('on'); await wait(900); if (!alive()) return;
+      // 2. ⌥ Space
+      stepOn(1); key.classList.add('on'); await wait(350); key.classList.add('press'); await wait(180); key.classList.remove('press');
+      showInput('', false); showList(-1); placePop(sel); pop.classList.add('on'); await wait(900); if (!alive()) return;
+      // 3. 스킬: 줄바꿈 없애기 → 바로 바뀜
+      stepOn(2); showList(1); await wait(700); if (!alive()) return;
+      pop.classList.remove('on'); key.classList.remove('on'); sel = render(s.joined, false); await wait(1500); if (!alive()) return;
+      // 4. AI: 다시 고르고 말로 요청 → 스트리밍 → 바뀜
+      sel.classList.add('on'); stepOn(3); await wait(500); key.classList.add('on'); key.classList.add('press'); await wait(180); key.classList.remove('press');
+      showInput('', false); showList(-1); placePop(sel); pop.classList.add('on'); await wait(500);
+      for (let i = 1; i <= s.ask.length; i++) { if (!alive()) return; showInput(s.ask.slice(0, i), true); await wait(70); }
+      await wait(300); list.style.display = 'none'; out.classList.add('on'); pop.classList.add('writing');
+      out.innerHTML = `<span style="display:flex;gap:8px;align-items:center;color:var(--sub)"><span class="tdorb"></span>${s.writing}</span>`; await wait(700);
+      for (let i = 1; i <= s.polite.length; i += 2) { if (!alive()) return; out.textContent = s.polite.slice(0, i); await wait(28); }
+      out.textContent = s.polite; await wait(800);
+      pop.classList.remove('on', 'writing'); key.classList.remove('on'); render(s.polite, false); await wait(2600);
+      if (alive()) loop();
+    }
+    // 화면에 보일 때만 돌린다
+    let started = false;
+    new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting && !started) { started = true; loop(); } }), { threshold: .3 }).observe(doc.parentElement);
+    document.querySelectorAll('.lang button').forEach(b => b.addEventListener('click', () => { if (started) loop(); }));
+  })();
+})();
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 **글자를 드래그하고 ⌥ Space. 파일을 끌면서 ⇧ ⌘ ⌃.** 그게 전부예요.
 macOS 26 이상, Liquid Glass. 모든 변환은 이 컴퓨터 안에서 해요(클라우드 AI는 직접 켰을 때만).
 
-> English summary is at the bottom.
+> 소개 페이지: https://rladlrwnd.github.io/hanlabong/ · English summary is at the bottom.
 
 DragEdit는 두 가지 일을 해요.
 
