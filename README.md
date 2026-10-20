@@ -107,13 +107,22 @@ AirDrop · **띄워두기**(화면 오른쪽 유리 선반에 올려두고 나�
 - **로컬 AI(선택)**: [Ollama](https://ollama.com) 또는 LM Studio.
 - **직접 빌드**: Command Line Tools(`xcode-select --install`)면 돼요. Xcode가 있으면 셰이더까지 직접 컴파일해요(없으면 `Prebuilt/`의 컴파일된 셰이더를 써요).
 
-## 설치 / 실행
+## 설치
+
+### 설치 파일로 (가장 쉬움)
+
+1. [Releases](../../releases)에서 `DragEdit-<버전>.pkg`를 받아서 열어요.
+2. **처음 열 때 "확인되지 않은 개발자" 경고가 떠요.** 아직 애플 공증을 받지 않은 앱이라서 그래요. 시스템 설정 › 개인정보 보호 및 보안 맨 아래에서 **그래도 열기**를 누른 뒤 다시 열면 설치 마법사가 떠요.
+3. 설치가 끝나면 응용 프로그램에서 DragEdit을 열고, 안내대로 **손쉬운 사용** 권한을 켜요(글자 팝업용). 파일 휠은 권한 없이도 돼요.
+
+### 직접 빌드
 
 ```bash
 scripts/install.sh      # 최적화 빌드 → /Applications/DragEdit.app 설치 → 실행
 scripts/run.sh          # 개발용: 빠른 debug 빌드를 build/에 만들어 실행
 scripts/build-app.sh    # 앱 파일만 만들기 (release 기본, debug 가능)
 scripts/test.sh         # 자동 테스트 전체 (화면 없이)
+scripts/make-pkg.sh     # 설치 마법사(.pkg) 만들기 → build/DragEdit-<버전>.pkg
 ```
 
 처음 실행하면 "손쉬운 사용" 권한 안내가 떠요. 개발자 인증서(Apple Development)가 있으면 그걸로 서명해서 다시 빌드해도 권한이 유지돼요. 서명할 때 키체인 허용 창이 뜨면 **항상 허용**을 눌러요.
@@ -167,4 +176,4 @@ MIT — [LICENSE](LICENSE). Vendor 폴더의 세 패키지도 MIT(각 폴더의 
   - Actions: AirDrop, Float shelf, copy/move to recent folders, copy path, open in Terminal — works on folders too.
 - Everything runs on your Mac. The UI is available in Korean and English (Settings › General › Language).
 
-Build with `scripts/install.sh` (Command Line Tools are enough). Inspired by [DragShift](https://github.com/llamaboi55/DragShift) (MIT) and [Tangerine](https://tangerineformac.com).
+Download the `.pkg` from Releases (it is not notarized yet: on first open use System Settings › Privacy & Security › Open Anyway), or build with `scripts/install.sh` (Command Line Tools are enough). Inspired by [DragShift](https://github.com/llamaboi55/DragShift) (MIT) and [Tangerine](https://tangerineformac.com).
