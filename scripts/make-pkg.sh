@@ -5,7 +5,9 @@
 # 서명·공증이 없는 pkg는 처음 열 때 macOS가 경고하고, 시스템 설정 › 개인정보 보호 및 보안에서 "그래도 열기"를 눌러야 한다.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-./scripts/build-app.sh release
+# 나눠줄 앱은 임시 서명(ad-hoc)으로: 개인 개발자 인증서로 서명하면 인증서 이름(애플 계정 이메일 등)이 앱에 박힌다.
+# 공증용 Developer ID 인증서가 생기면 DIST_SIGN_IDENTITY="Developer ID Application: …"으로 지정한다.
+SIGN_IDENTITY="${DIST_SIGN_IDENTITY:--}" ./scripts/build-app.sh release
 
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
 IDENTIFIER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' Resources/Info.plist)"

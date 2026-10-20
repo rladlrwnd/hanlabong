@@ -54,6 +54,9 @@ if [ -z "$SIGN_IDENTITY" ]; then
 fi
 
 APP="build/DragEdit.app"
+# 실행 파일에 내 컴퓨터 경로(/Users/이름/...)가 박히지 않게, 소스 폴더 경로를 "DragEdit"로 바꿔 넣는다
+REPO="$(pwd)"
+PREFIX_MAP="-file-prefix-map $REPO=DragEdit"
 
 if [ "$USE_XCODE" = "1" ]; then
   DERIVED="build/DerivedData"
@@ -64,6 +67,7 @@ if [ "$USE_XCODE" = "1" ]; then
     -configuration "$CONFIG" \
     -derivedDataPath "$DERIVED" \
     CODE_SIGNING_ALLOWED=NO \
+    OTHER_SWIFT_FLAGS="\$(inherited) $PREFIX_MAP" \
     -quiet \
     build
   BINARY="$PRODUCTS/DragEdit"
@@ -72,7 +76,7 @@ if [ "$USE_XCODE" = "1" ]; then
   cp -R "$PRODUCTS/BorderBeamKit_BorderBeamKit.bundle" Prebuilt/
   RESOURCE_BUNDLES=("$PRODUCTS"/*.bundle)
 else
-  swift build -c "$(echo "$CONFIG" | tr '[:upper:]' '[:lower:]')" 2>&1 | grep -E "error|Build complete" || true
+  swift build -c "$(echo "$CONFIG" | tr '[:upper:]' '[:lower:]')" -Xswiftc -file-prefix-map -Xswiftc "$REPO=DragEdit" 2>&1 | grep -E "error|Build complete" || true
   PRODUCTS=".build/$(echo "$CONFIG" | tr '[:upper:]' '[:lower:]')"
   BINARY="$PRODUCTS/DragEdit"
   [ -x "$BINARY" ] || { echo "❌ 빌드에 실패했어요"; exit 1; }
@@ -86,6 +90,8 @@ fi
 rm -rf "$APP" build/Prism.app build/TextPopup.app  # 예전 이름으로 만든 앱도 정리
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BINARY" "$APP/Contents/MacOS/DragEdit"
+# 배포용은 내부 이름표(심볼)를 걷어낸다: 파일이 작아지고, 남아 있을 수 있는 빌드 컴퓨터 경로도 지워진다
+[ "$CONFIG" = "Release" ] && strip -x "$APP/Contents/MacOS/DragEdit"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 for bundle in "${RESOURCE_BUNDLES[@]}"; do
   [ -e "$bundle" ] && cp -R "$bundle" "$APP/Contents/Resources/"
