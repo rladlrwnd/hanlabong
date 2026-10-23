@@ -66,7 +66,7 @@ h1 { font-size: clamp(40px, 7vw, 76px); line-height: 1.05; letter-spacing: -.035
 /* 체험판 */
 .stage { position: relative; margin: 44px auto 0; height: 520px; max-width: 980px; border-radius: 28px;
   background: var(--card); border: 1px solid var(--glass-edge); box-shadow: var(--shadow);
-  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
 .stage .hint { position: absolute; left: 0; right: 0; top: 18px; font-size: 14px; color: var(--sub); }
 .stage .hint b { font-weight: 600; color: var(--ink); }
 .keys { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 8px; }
@@ -75,13 +75,15 @@ h1 { font-size: clamp(40px, 7vw, 76px); line-height: 1.05; letter-spacing: -.035
 .key kbd { display: block; font: 600 18px/1 -apple-system, sans-serif; color: var(--ink); margin-bottom: 3px; }
 .key.on { background: var(--ink); color: var(--paper); }
 .key.on kbd { color: var(--paper); }
-.file { position: absolute; width: 92px; text-align: center; font-size: 12px; color: var(--ink); cursor: grab; z-index: 3; }
+.file { position: absolute; width: 92px; text-align: center; font-size: 12px; color: var(--ink); cursor: grab; z-index: 3; touch-action: none; }
 .file .icon { width: 64px; height: 76px; margin: 0 auto 6px; border-radius: 10px; display: grid; place-items: center;
   font: 700 12px/1 -apple-system, sans-serif; color: #fff; box-shadow: 0 6px 16px rgba(0,0,0,.15); position: relative; }
 .file .icon::after { content: ""; position: absolute; top: 0; right: 0; width: 18px; height: 18px; background: rgba(255,255,255,.35);
   border-bottom-left-radius: 8px; border-top-right-radius: 10px; }
 .file .name { padding: 1px 6px; border-radius: 5px; display: inline-block; }
 .file.dragging { cursor: grabbing; z-index: 30; }
+.file { transition: opacity .2s; }
+.stage.wheeling .file:not(.dragging):not(.made) { opacity: .12; }
 .file.dragging .name { background: #2f6bff; color: #fff; }
 .file.ghost { opacity: .35; pointer-events: none; }
 .file.made { animation: pop .5s cubic-bezier(.2,.9,.3,1.3); }
@@ -224,6 +226,31 @@ footer .wrap { border-top: 1px solid var(--line); padding-top: 24px; }
 .tdsteps span.on { background: var(--ink); color: var(--paper); border-color: transparent; }
 @media (max-width: 640px) { .tdwin { height: 700px; } .tddoc { padding: 20px; font-size: 15px; } .tdpop { left: 16px; width: calc(100% - 32px); } }
 
+.cards.three { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 860px) { .cards.three { grid-template-columns: 1fr; } }
+/* 휴대폰: 체험 창을 줄이고, 아이콘을 휠 바깥쪽으로, 글자 크기 조정 */
+@media (max-width: 640px) {
+  .hero { padding: 40px 0 24px; }
+  .stage { height: 460px; border-radius: 22px; }
+  .stage .hint { top: 14px; padding: 0 14px; font-size: 13px; }
+  .file { width: 76px; font-size: 11px; }
+  .file .icon { width: 52px; height: 62px; }
+  .keys { bottom: 12px; gap: 6px; }
+  .key { min-width: 56px; padding: 6px 10px; }
+  section { padding-top: 64px; }
+  .stats { margin-top: 36px; gap: 10px; }
+  .stat { padding: 16px; }
+  .stat .n { font-size: 28px; }
+  .wcard { padding: 22px; }
+  .cta { margin-top: 72px; padding: 44px 18px; }
+  .cta .alt { margin: 10px 0 0; }
+  .mini { max-width: 340px; }
+  .textdemo .cap { margin: 0 2px 10px; }
+  nav .soon { padding: 7px 12px; }
+}
+.mobilehint { display: none; }
+@media (hover: none) { .mobilehint { display: block; } .deskhint { display: none; } }
+
 [data-ko], [data-en] { }
 html[lang="en"] [data-ko] { display: none !important; }
 html[lang="ko"] [data-en] { display: none !important; }
@@ -267,8 +294,10 @@ html[lang="ko"] [data-en] { display: none !important; }
 
     <div class="stage" id="stage">
       <div class="hint">
-        <span data-ko><b>파일을 끌어보세요.</b> 끄는 동안 ⇧ · ⌘ · ⌃ 를 누르거나 아래 단추를 눌러요.</span>
-        <span data-en><b>Drag a file.</b> While dragging, press ⇧ · ⌘ · ⌃ or tap a key below.</span>
+        <span class="deskhint"><span data-ko><b>파일을 끌어보세요.</b> 끄는 동안 ⇧ · ⌘ · ⌃ 를 누르거나 아래 단추를 눌러요.</span>
+        <span data-en><b>Drag a file.</b> While dragging, press ⇧ · ⌘ · ⌃ or tap a key below.</span></span>
+        <span class="mobilehint"><span data-ko><b>아래 단추를 누르고</b> 파일 아이콘을 끌어보세요. 빈 곳을 밀면 페이지가 내려가요.</span>
+        <span data-en><b>Tap a key below,</b> then drag a file icon. Swipe empty space to scroll.</span></span>
       </div>
       <div class="toast" id="toast"></div>
       <div class="wheel" id="wheel"><div class="glassbg"></div><svg viewBox="0 0 400 400" id="wheelSvg"></svg></div>
@@ -470,7 +499,7 @@ html[lang="ko"] [data-en] { display: none !important; }
     <h2><span data-ko>필요할 때만. 내 맥에서 먼저.</span><span data-en>Only when needed. Local first.</span></h2>
     <p class="sub"><span data-ko>규칙으로 되는 일은 AI를 부르지 않아요. 애매한 것만 내 컴퓨터의 AI(Ollama·LM Studio)가 처리하고 클라우드는 직접 켰을 때만 써요. 밖으로 나갈 땐 휠에 미리 표시돼요.</span>
       <span data-en>Rules handle what rules can. Only the fuzzy parts go to an AI on your Mac (Ollama, LM Studio). Cloud is opt-in, and the wheel tells you before anything leaves.</span></p>
-    <div class="cards" style="margin-top:34px;grid-template-columns:repeat(3,1fr)">
+    <div class="cards three" style="margin-top:34px">
       <div class="card"><h3>What is it?</h3>
         <p data-ko>문서를 놓으면 요약이 바로 써져요. Tab을 누르면 심층 분석. 긴 글은 나눠서 읽어요.</p>
         <p data-en>Drop a document and the summary writes itself. Tab for a deep dive. Long text is read in parts.</p></div>
@@ -698,7 +727,9 @@ html[lang="ko"] [data-en] { display: none !important; }
     { name: 'notes.docx', kind: 'doc', color: 'linear-gradient(135deg,#4c8dff,#2a5fd6)', label: 'DOCX' },
     { name: ['사진 폴더', 'Photos'], kind: 'folder', color: 'linear-gradient(135deg,#7cc7ff,#3a9bea)', label: '' },
   ];
+  const narrow = () => document.getElementById('stage').getBoundingClientRect().width < 520;
   const slotsXY = [[0.12, 0.30], [0.12, 0.62], [0.88, 0.30], [0.88, 0.62], [0.50, 0.40]];
+  const slotsXYNarrow = [[0.16, 0.24], [0.16, 0.56], [0.84, 0.24], [0.84, 0.56], [0.50, 0.64]];
   const madeLayer = document.createElement('div'); stage.appendChild(madeLayer);
   const fileEls = FILES.map((f, i) => {
     const el = document.createElement('div'); el.className = 'file';
@@ -707,7 +738,8 @@ html[lang="ko"] [data-en] { display: none !important; }
   });
   function placeFiles() {
     const r = stage.getBoundingClientRect();
-    fileEls.forEach(el => { el.style.left = (el._home[0] * r.width - 46) + 'px'; el.style.top = (el._home[1] * r.height - 40) + 'px'; el.querySelector('.name').textContent = title(el._file.name); });
+    const xy = narrow() ? slotsXYNarrow : slotsXY;
+    fileEls.forEach((el, i) => { el._home = xy[i]; const half = el.offsetWidth / 2 || 46; el.style.left = (el._home[0] * r.width - half) + 'px'; el.style.top = (el._home[1] * r.height - 40) + 'px'; el.querySelector('.name').textContent = title(el._file.name); });
   }
 
   let drag = null, mode = null, items = null, hover = null, expanded = null, wheelPos = null;
@@ -716,12 +748,19 @@ html[lang="ko"] [data-en] { display: none !important; }
     if (!drag) return;
     const [list, actual] = layout(drag.file.kind, m); mode = actual; items = list.slice(0, 8);
     while (items.length < 8) items.push(null);
-    if (!wheelPos) { wheelPos = { ...drag.pos }; const r = stage.getBoundingClientRect(); wheelPos.x = Math.min(Math.max(wheelPos.x, 120), r.width - 120); wheelPos.y = Math.min(Math.max(wheelPos.y, 150), r.height - 120); }
+    if (!wheelPos) {
+      const r = stage.getBoundingClientRect(), half = wheel.offsetWidth / 2;
+      // 좁은 화면(휴대폰)에선 휠을 창 가운데에, 넓은 화면에선 커서 아래에(창 밖으로 안 나가게)
+      wheelPos = narrow() ? { x: r.width / 2, y: r.height / 2 - 6 } : { ...drag.pos };
+      wheelPos.x = Math.min(Math.max(wheelPos.x, half - 40), r.width - half + 40);
+      wheelPos.y = Math.min(Math.max(wheelPos.y, half - 30), r.height - half + 10);
+    }
+    stage.classList.add('wheeling');
     wheel.style.left = wheelPos.x + 'px'; wheel.style.top = wheelPos.y + 'px'; wheel.classList.add('show');
     hover = null; expanded = null; draw();
     document.querySelectorAll('.key').forEach(k => k.classList.toggle('on', k.dataset.mode === mode));
   }
-  function closeWheel() { wheel.classList.remove('show'); wheelPos = null; mode = null; document.querySelectorAll('.key').forEach(k => k.classList.remove('on')); }
+  function closeWheel() { wheel.classList.remove('show'); stage.classList.remove('wheeling'); wheelPos = null; mode = null; document.querySelectorAll('.key').forEach(k => k.classList.remove('on')); }
   function centerText() {
     const it = current(); if (!it) return null;
     if (it.ai) return ['What is it?', T('요약 · Tab으로 심층 분석', 'Summary · Tab for more')];
