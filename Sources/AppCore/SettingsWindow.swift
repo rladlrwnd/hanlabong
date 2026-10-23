@@ -84,7 +84,7 @@ package final class SettingsWindowController: NSObject, NSWindowDelegate {
                 styleMask: [.titled, .closable, .miniaturizable],
                 backing: .buffered, defer: false
             )
-            window.title = L("DragEdit 설정", "DragEdit Settings")
+            window.title = L("한라봉 설정", "Hanlabong Settings")
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.center()
@@ -270,7 +270,7 @@ private struct AgentsTab: View {
                 } header: {
                     Label(L("메모리 — 큰 모델은 램을 많이 차지해요", "Memory — large models use a lot of RAM"), systemImage: "memorychip")
                 } footer: {
-                    Text(L("모델은 처음 쓸 때 메모리에 올라가서(큰 모델은 20초쯤) 정한 시간 동안 머물러요. 짧게 잡을수록 램이 빨리 비지만, 다시 쓸 때 또 기다려야 해요. DragEdit을 끄면 DragEdit이 올린 모델도 같이 내려요.", "A model loads into memory the first time you use it (about 20 s for large ones) and stays for the time you set. Shorter frees RAM sooner, but you wait again next time. Quitting DragEdit also unloads the models it loaded."))
+                    Text(L("모델은 처음 쓸 때 메모리에 올라가서(큰 모델은 20초쯤) 정한 시간 동안 머물러요. 짧게 잡을수록 램이 빨리 비지만, 다시 쓸 때 또 기다려야 해요. 한라봉을 끄면 한라봉이 올린 모델도 같이 내려요.", "A model loads into memory the first time you use it (about 20 s for large ones) and stays for the time you set. Shorter frees RAM sooner, but you wait again next time. Quitting Hanlabong also unloads the models it loaded."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -477,6 +477,7 @@ private struct GeneralTab: View {
     @AppStorage(PopupGlass.tintKey) private var tint = PopupGlass.defaultTint
     @AppStorage(PopupGlass.brightnessKey) private var brightness = PopupGlass.defaultBrightness
     @AppStorage(PopupGlass.followSystemKey) private var followSystem = PopupGlass.defaultFollowSystem
+    @AppStorage(AppAccent.key) private var accentHex = AppAccent.defaultHex
 
     var body: some View {
         Form {
@@ -485,6 +486,15 @@ private struct GeneralTab: View {
                 HapticSlider(title: L("틴트", "Tint"), value: $tint, onEditing: extras.appearanceEditing)
                 Toggle(L("밝기를 맥의 라이트/다크 모드에 맞추기", "Match brightness to light/dark mode"), isOn: $followSystem)
                 HapticSlider(title: L("밝기", "Brightness"), value: $brightness, disabled: followSystem, onEditing: extras.appearanceEditing)
+                HStack {
+                    ColorPicker(L("강조색 (휠에서 고른 칸)", "Accent (highlighted wheel slot)"), selection: Binding(
+                        get: { AppAccent.color(accentHex) },
+                        set: { accentHex = AppAccent.hex($0) }
+                    ), supportsOpacity: false)
+                    if accentHex != AppAccent.defaultHex {
+                        Button(L("한라봉색", "Hanlabong orange")) { accentHex = AppAccent.defaultHex }
+                    }
+                }
                 HStack {
                     Text(L("슬라이더를 움직이면 설정 창 옆에 팝업이 떠서 바로 보여줘요.", "Move a slider and a preview popup appears next to Settings."))
                         .font(.caption)

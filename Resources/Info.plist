@@ -5,9 +5,11 @@
 	<key>CFBundleAllowMixedLocalizations</key>
 	<true/>
 	<key>CFBundleDisplayName</key>
-	<string>DragEdit</string>
+	<string>Hanlabong</string>
 	<key>CFBundleExecutable</key>
 	<string>DragEdit</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>app.dragedit.DragEdit</string>
 	<key>CFBundleLocalizations</key>
@@ -16,13 +18,15 @@
 		<string>en</string>
 	</array>
 	<key>CFBundleName</key>
-	<string>DragEdit</string>
+	<string>Hanlabong</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>1.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>LSHasLocalizedDisplayName</key>
+	<true/>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
 	<key>LSUIElement</key>

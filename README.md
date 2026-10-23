@@ -1,11 +1,13 @@
-# DragEdit
+<p align="center"><img src="Resources/Icon/hanlabong-mark.svg" width="120" alt=""></p>
+
+# 한라봉 · Hanlabong
 
 **글자를 드래그하고 ⌥ Space. 파일을 끌면서 ⇧ ⌘ ⌃.** 그게 전부예요.
 macOS 26 이상, Liquid Glass. 모든 변환은 이 컴퓨터 안에서 해요(클라우드 AI는 직접 켰을 때만).
 
 > 소개 페이지: https://rladlrwnd.github.io/hanlabong/ · English summary is at the bottom.
 
-DragEdit는 두 가지 일을 해요.
+한라봉은 두 가지 일을 해요. (예전 이름은 DragEdit. 안 보이는 곳의 이름표엔 그대로 남겨 뒀어요.)
 
 1. **글자 팝업**(예전 이름 Prism): 어떤 앱에서든 글자를 고르고 ⌥ Space → 바로 아래 유리 팝업에서 규칙(스킬)이나 AI로 고쳐서 그 자리에 다시 넣어요.
 2. **파일 휠**: Finder에서 파일을 끌면서 수정키를 누르면 커서 아래에 휠이 떠요. 칸에 놓으면 **원본 옆에 새 파일**로 만들어요. 원본은 절대 고치지 않아요.
@@ -111,18 +113,18 @@ AirDrop · **띄워두기**(화면 오른쪽 유리 선반에 올려두고 나�
 
 ### 설치 파일로 (가장 쉬움)
 
-1. [Releases](../../releases)에서 `DragEdit-<버전>.pkg`를 받아서 열어요.
+1. [Releases](../../releases)에서 `Hanlabong-<버전>.pkg`를 받아서 열어요.
 2. **처음 열 때 "확인되지 않은 개발자" 경고가 떠요.** 아직 애플 공증을 받지 않은 앱이라서 그래요. 시스템 설정 › 개인정보 보호 및 보안 맨 아래에서 **그래도 열기**를 누른 뒤 다시 열면 설치 마법사가 떠요.
-3. 설치가 끝나면 응용 프로그램에서 DragEdit을 열고, 안내대로 **손쉬운 사용** 권한을 켜요(글자 팝업용). 파일 휠은 권한 없이도 돼요.
+3. 설치가 끝나면 응용 프로그램에서 한라봉을 열고, 안내대로 **손쉬운 사용** 권한을 켜요(글자 팝업용). 파일 휠은 권한 없이도 돼요.
 
 ### 직접 빌드
 
 ```bash
-scripts/install.sh      # 최적화 빌드 → /Applications/DragEdit.app 설치 → 실행
+scripts/install.sh      # 최적화 빌드 → /Applications/Hanlabong.app 설치 → 실행
 scripts/run.sh          # 개발용: 빠른 debug 빌드를 build/에 만들어 실행
 scripts/build-app.sh    # 앱 파일만 만들기 (release 기본, debug 가능)
 scripts/test.sh         # 자동 테스트 전체 (화면 없이)
-scripts/make-pkg.sh     # 설치 마법사(.pkg) 만들기 → build/DragEdit-<버전>.pkg
+scripts/make-pkg.sh     # 설치 마법사(.pkg) 만들기 → build/Hanlabong-<버전>.pkg
 ```
 
 처음 실행하면 "손쉬운 사용" 권한 안내가 떠요. 개발자 인증서(Apple Development)가 있으면 그걸로 서명해서 다시 빌드해도 권한이 유지돼요. 서명할 때 키체인 허용 창이 뜨면 **항상 허용**을 눌러요.
@@ -133,7 +135,7 @@ scripts/make-pkg.sh     # 설치 마법사(.pkg) 만들기 → build/DragEdit-<�
 - 스킬: `~/Library/Application Support/DragEdit/skills.json` · 파일 휠: `file-wheels.json` · 작업 기록: `file-history.json` (같은 폴더, 사람이 읽을 수 있는 JSON)
 - API 키: macOS 키체인(이 맥에서만, 다른 기기로 동기화되지 않음)
 - 로그에 글자·파일 내용·파일 이름은 남기지 않아요: `/usr/bin/log stream --predicate 'subsystem == "app.dragedit"'`
-- 번들 ID: `app.dragedit.DragEdit`
+- 번들 ID: `app.dragedit.DragEdit` (예전 이름 그대로. 그래서 DragEdit에서 넘어와도 설정·키·기록이 그대로예요)
 - **AI에게 넘기는 문서**: 문서는 "자료 칸"으로 감싸서 보내고, 그 안의 명령은 따르지 말라고 AI에게 알려요. 그래도 AI는 속을 수 있으니, 낯선 문서의 요약은 참고용으로 봐주세요. AI는 파일을 지우거나 실행할 권한이 없어요.
 - **영상(ffmpeg)**: 파일 앞부분이 진짜 영상일 때만 넘기고, 이 컴퓨터의 파일만 열게(인터넷 주소·재생목록 금지) 막아 두었어요. ffmpeg는 정해진 설치 위치(/opt/homebrew/bin 등)에서만 찾아요.
 - **아주 큰 파일**: 문서는 200MB(글 파일 50MB)까지, 압축된 문서 속 내용은 64MB까지만 풀어요. 넘으면 멈추지 않고 거절해요.
@@ -167,7 +169,7 @@ MIT — [LICENSE](LICENSE). Vendor 폴더의 세 패키지도 MIT(각 폴더의 
 
 ## English
 
-**Select text and press ⌥ Space. Drag a file and press ⇧ ⌘ ⌃.** DragEdit is a native macOS 26 app (Liquid Glass) that does two things:
+**Select text and press ⌥ Space. Drag a file and press ⇧ ⌘ ⌃.** Hanlabong (formerly DragEdit) is a native macOS 26 app (Liquid Glass) that does two things:
 
 - **Text popup** — select text anywhere, press ⌥ Space, fix it with rule-based skills or AI (local Ollama/LM Studio first; cloud Claude/ChatGPT/Gemini/Groq only if you turn it on), and it's pasted back in place.
 - **File wheel** — while dragging a file in Finder, press **⇧ Convert**, **⌘ Tools**, or **⌃ Actions**. Drop on a slot and the result is saved **next to the original** (never overwritten).

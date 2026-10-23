@@ -104,6 +104,7 @@ struct WheelView: View {
     /// 화면에 그리고 있는 2단계 링(접힐 때 사라지는 모션이 끝날 때까지 남겨 둔다)
     @State private var shownParent: Int?
     @State private var ringVisible = false
+    @AppStorage(AppAccent.key) private var accentHex = AppAccent.defaultHex
 
     var body: some View {
         let g = model.geometry
@@ -201,7 +202,7 @@ struct WheelView: View {
     /// 꽃잎 한 장 = 유리 + 그 위의 내용(강조색, 아이콘, 이름). 팝업 카드와 같은 구조라 글씨가 유리 위에 또렷하게 얹힌다.
     private func petalContent<Label: View>(_ petal: PetalShape, highlight: Double, size: CGFloat, @ViewBuilder label: () -> Label) -> some View {
         ZStack {
-            petal.fill(Color.accentColor.opacity(highlight)).animation(.easeOut(duration: 0.08), value: highlight)
+            petal.fill(AppAccent.color(accentHex).opacity(highlight)).animation(.easeOut(duration: 0.08), value: highlight)
             label()
         }
         .frame(width: size, height: size)

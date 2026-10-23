@@ -11,10 +11,17 @@ package enum KeychainStore {
     /// (특히 새로 설치해 서명이 바뀐 앱), 목록 새로 고침마다 다시 읽으면 허용 창이 여러 번 뜬다.
     private static let lock = NSLock()
     nonisolated(unsafe) private static var cache: [AgentProvider: String] = [:]
+    /// 허용 창에서 거부(또는 창 닫기)한 키. 앱이 켜져 있는 동안은 다시 묻지 않는다(키를 새로 저장하면 풀린다).
+    nonisolated(unsafe) private static var refused: Set<AgentProvider> = []
+    /// 키체인에는 한 번에 하나씩만 묻는다. 앱이 켜질 때 여러 곳이 동시에 키를 찾으면
+    /// 처음 답이 기억되기 전에 각자 물어서 허용 창이 여러 번 떴다. 뒤에 온 쪽은 앞의 답을 기다렸다가 그대로 쓴다.
+    private static let readLock = NSLock()
 
     package static func key(for provider: AgentProvider) -> String? {
-        lock.lock(); let cached = cache[provider]; lock.unlock()
+        readLock.lock(); defer { readLock.unlock() }
+        lock.lock(); let cached = cache[provider], wasRefused = refused.contains(provider); lock.unlock()
         if let cached { return cached }
+        if wasRefused { return nil }
         let value = loadKey(for: provider)
         if let value { lock.lock(); cache[provider] = value; lock.unlock() }
         return value
@@ -49,8 +56,11 @@ package enum KeychainStore {
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return nil }
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecUserCanceled || status == errSecAuthFailed {
+            lock.lock(); refused.insert(provider); lock.unlock()
+        }
+        guard status == errSecSuccess, let data = result as? Data else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
@@ -73,7 +83,7 @@ package enum KeychainStore {
     package static func setKey(_ key: String, for provider: AgentProvider) -> Bool {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return deleteKey(for: provider) }
-        lock.lock(); cache[provider] = trimmed; lock.unlock()
+        lock.lock(); cache[provider] = trimmed; refused.remove(provider); lock.unlock()
         let data = Data(trimmed.utf8)
         // 고치지 않고 지운 뒤 새로 만든다: 그래야 지금 이 앱이 키의 주인이 돼서, 읽을 때 허용을 다시 묻지 않는다
         // (다른 빌드·다른 서명으로 만든 키를 그대로 고치면 예전 앱만 믿는 채로 남는다)
@@ -87,7 +97,7 @@ package enum KeychainStore {
 
     @discardableResult
     package static func deleteKey(for provider: AgentProvider) -> Bool {
-        lock.lock(); cache[provider] = nil; lock.unlock()
+        lock.lock(); cache[provider] = nil; refused.remove(provider); lock.unlock()
         let status = SecItemDelete(baseQuery(provider) as CFDictionary)
         return status == errSecSuccess || status == errSecItemNotFound
     }

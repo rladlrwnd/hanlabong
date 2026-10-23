@@ -3,8 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DragEdit</title>
+<title>한라봉 · Hanlabong</title>
 <meta name="description" content="끌고 누르고 놓으면 끝. 맥에서만 도는 파일 변환과 글자 손질.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="한라봉 · Hanlabong">
+<meta property="og:description" content="끌고 누르고 놓으면 끝. 맥에서만 도는 파일 변환과 글자 손질.">
+<meta property="og:image" content="https://rladlrwnd.github.io/hanlabong/og.png">
+<meta property="og:url" content="https://rladlrwnd.github.io/hanlabong/">
+<meta name="twitter:card" content="summary_large_image">
 <style>
 :root {
   --ink: #17171a;
@@ -14,11 +21,11 @@
   --card: rgba(255, 255, 255, .62);
   --glass: rgba(255, 255, 255, .58);
   --glass-edge: rgba(255, 255, 255, .7);
-  --accent: #ff7a45;
-  --hi: rgba(255, 122, 69, .32);
+  --accent: #e85d00;
+  --hi: rgba(255, 179, 71, .38);
   --shadow: 0 30px 80px rgba(60, 30, 10, .14);
   --petal-edge: rgba(40, 20, 0, .10);
-  --wglass: rgba(255, 255, 255, .55); --wdisk: rgba(240, 240, 244, .55); --whi: rgba(10, 132, 255, .38); --wedge: rgba(0, 0, 0, .10);
+  --wglass: rgba(255, 255, 255, .55); --wdisk: rgba(240, 240, 244, .55); --whi: rgba(255, 179, 71, .55); --wedge: rgba(0, 0, 0, .10);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -55,9 +62,9 @@ nav .links a:hover { color: var(--ink); }
 /* 첫 화면 */
 .hero { position: relative; padding: 72px 0 40px; text-align: center; overflow: hidden; }
 .hero::before { content: ""; position: absolute; inset: -20% -10% auto; height: 120%; z-index: -1;
-  background: radial-gradient(800px 500px at 18% 20%, #ffd08a, transparent 60%),
-              radial-gradient(700px 520px at 85% 30%, #c9b4ff, transparent 60%),
-              radial-gradient(900px 600px at 50% 90%, #ff9a76, transparent 60%);
+  background: radial-gradient(800px 500px at 18% 20%, #ffd27a, transparent 60%),
+              radial-gradient(700px 520px at 85% 30%, #ffe2b0, transparent 60%),
+              radial-gradient(900px 600px at 50% 90%, #ffb347, transparent 60%);
   opacity: .55; filter: saturate(1.1); }
 h1 { font-size: clamp(40px, 7vw, 76px); line-height: 1.05; letter-spacing: -.035em; margin: 0 0 18px; }
 .lead { font-size: clamp(17px, 2vw, 21px); color: var(--sub); max-width: 640px; margin: 0 auto; }
@@ -131,7 +138,7 @@ h2 { font-size: clamp(30px, 4.4vw, 48px); line-height: 1.12; letter-spacing: -.0
 .card h3 { margin: 0 0 6px; font-size: 16px; letter-spacing: -.01em; }
 .card p { margin: 0; font-size: 14px; color: var(--sub); line-height: 1.55; }
 .mini { width: 100%; max-width: 440px; aspect-ratio: 1; margin: 0 auto; display: block; padding: 6%; border-radius: 32px;
-  background: radial-gradient(70% 70% at 30% 25%, #ffd08a, transparent 70%), radial-gradient(70% 70% at 80% 80%, #c9b4ff, transparent 70%), radial-gradient(60% 60% at 70% 20%, #ff9a76, transparent 70%);
+  background: radial-gradient(70% 70% at 30% 25%, #ffd27a, transparent 70%), radial-gradient(70% 70% at 80% 80%, #ffe2b0, transparent 70%), radial-gradient(60% 60% at 70% 20%, #ffb347, transparent 70%);
   box-shadow: var(--shadow); }
 
 .formats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 40px; }
@@ -154,7 +161,7 @@ h2 { font-size: clamp(30px, 4.4vw, 48px); line-height: 1.12; letter-spacing: -.0
 .cta { margin: 110px 0 0; padding: 64px 28px; border-radius: 32px; text-align: center; position: relative; overflow: hidden;
   background: var(--card); border: 1px solid var(--glass-edge); box-shadow: var(--shadow); }
 .cta::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .45;
-  background: radial-gradient(600px 300px at 20% 0%, #ffd08a, transparent 70%), radial-gradient(600px 300px at 80% 100%, #c9b4ff, transparent 70%); }
+  background: radial-gradient(600px 300px at 20% 0%, #ffd27a, transparent 70%), radial-gradient(600px 300px at 80% 100%, #ffe2b0, transparent 70%); }
 .cta ul { list-style: none; padding: 0; margin: 26px auto 30px; max-width: 520px; text-align: left; color: var(--sub); }
 .cta li { padding: 8px 0; border-bottom: 1px solid var(--line); }
 .cta .btn { display: inline-block; padding: 14px 26px; border-radius: 99px; background: var(--ink); color: var(--paper); text-decoration: none; font-weight: 600; }
@@ -218,9 +225,9 @@ footer .wrap { border-top: 1px solid var(--line); padding-top: 24px; }
 .tdlist kbd { font: 600 12px/1 -apple-system, sans-serif; color: var(--sub); }
 .tdout { margin: 6px 4px 4px; padding: 12px 14px; border-radius: 14px; font-size: 15px; line-height: 1.6; background: color-mix(in srgb, var(--ink) 5%, transparent); display: none; white-space: pre-wrap; }
 .tdout.on { display: block; }
-.tdorb { width: 14px; height: 14px; border-radius: 50%; background: conic-gradient(#ff9a5a, #c9a6ff, #7cc7ff, #ff9a5a); animation: spin 1.2s linear infinite; flex: none; }
+.tdorb { width: 14px; height: 14px; border-radius: 50%; background: conic-gradient(#ffb347, #f26a00, #ffd27a, #ffb347); animation: spin 1.2s linear infinite; flex: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.tdpop.writing { box-shadow: var(--shadow), 0 0 0 1.5px rgba(124,199,255,.55), 0 0 22px rgba(201,166,255,.35); }
+.tdpop.writing { box-shadow: var(--shadow), 0 0 0 1.5px rgba(255,179,71,.65), 0 0 22px rgba(242,106,0,.3); }
 .tdsteps { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; gap: 8px; font-size: 12px; color: var(--sub); }
 .tdsteps span { padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); transition: .3s; }
 .tdsteps span.on { background: var(--ink); color: var(--paper); border-color: transparent; }
@@ -261,16 +268,11 @@ html[lang="ko"] [data-en] { display: none !important; }
 <nav>
   <div class="wrap">
     <a class="brand" href="#top">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><g transform="translate(16 16)">
-        <g fill="#ff7a45"><path d="M-3-14h6a3 3 0 0 1 3 3v5h-12v-5a3 3 0 0 1 3-3z" opacity=".95"/></g>
-        <g fill="#ffb347" transform="rotate(90)"><path d="M-3-14h6a3 3 0 0 1 3 3v5h-12v-5a3 3 0 0 1 3-3z"/></g>
-        <g fill="#c9a6ff" transform="rotate(180)"><path d="M-3-14h6a3 3 0 0 1 3 3v5h-12v-5a3 3 0 0 1 3-3z"/></g>
-        <g fill="#ff9a76" transform="rotate(270)"><path d="M-3-14h6a3 3 0 0 1 3 3v5h-12v-5a3 3 0 0 1 3-3z"/></g>
-        <circle r="4" fill="currentColor" opacity=".85"/></g></svg>
-      DragEdit
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="#f26a00"/><circle cx="16" cy="16" r="13.6" fill="#fff3e2"/><path d="M15.88 12.19 L12.95 5.12 A11.30 11.30 0 0 1 19.05 5.12 L16.12 12.19 A3.81 3.81 0 0 0 15.88 12.19Z" fill="#ffe0a0" stroke="#ffe0a0" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.61 13.23 L21.54 6.15 A11.30 11.30 0 0 1 25.85 10.46 L18.77 13.39 A3.81 3.81 0 0 0 18.61 13.23Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M19.81 15.88 L26.88 12.95 A11.30 11.30 0 0 1 26.88 19.05 L19.81 16.12 A3.81 3.81 0 0 0 19.81 15.88Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.77 18.61 L25.85 21.54 A11.30 11.30 0 0 1 21.54 25.85 L18.61 18.77 A3.81 3.81 0 0 0 18.77 18.61Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.12 19.81 L19.05 26.88 A11.30 11.30 0 0 1 12.95 26.88 L15.88 19.81 A3.81 3.81 0 0 0 16.12 19.81Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.39 18.77 L10.46 25.85 A11.30 11.30 0 0 1 6.15 21.54 L13.23 18.61 A3.81 3.81 0 0 0 13.39 18.77Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.19 16.12 L5.12 19.05 A11.30 11.30 0 0 1 5.12 12.95 L12.19 15.88 A3.81 3.81 0 0 0 12.19 16.12Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.23 13.39 L6.15 10.46 A11.30 11.30 0 0 1 10.46 6.15 L13.39 13.23 A3.81 3.81 0 0 0 13.23 13.39Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      <span data-ko>한라봉</span><span data-en>Hanlabong</span>
     </a>
     <div class="links">
-      <a href="#why"><span data-ko>왜 DragEdit</span><span data-en>Why</span></a>
+      <a href="#why"><span data-ko>왜 한라봉</span><span data-en>Why</span></a>
       <a href="#wheels"><span data-ko>세 가지 휠</span><span data-en>Wheels</span></a>
       <a href="#ai"><span data-ko>AI</span><span data-en>AI</span></a>
       <a href="#formats"><span data-ko>형식</span><span data-en>Formats</span></a>
@@ -342,7 +344,7 @@ html[lang="ko"] [data-en] { display: none !important; }
   </div>
 
   <section id="why">
-    <div class="eyebrow" data-ko>왜 DragEdit인가</div><div class="eyebrow" data-en>Why DragEdit</div>
+    <div class="eyebrow" data-ko>왜 한라봉인가</div><div class="eyebrow" data-en>Why Hanlabong</div>
     <h2><span data-ko>바꾸는 것에서 끝나지 않아요.</span><span data-en>It does more than convert.</span></h2>
     <p class="sub"><span data-ko>내 맥 안의 AI가 문서를 읽고 고쳐요. 사진 작업에 필요한 내보내기는 한 번에 끝나요. 횟수 제한도 없어요.</span>
       <span data-en>An AI on your own Mac reads and fixes documents. Photo exports take one drop. And there are no conversion limits.</span></p>
@@ -544,7 +546,7 @@ html[lang="ko"] [data-en] { display: none !important; }
       <div class="pv"><h3 data-ko>온라인 변환기</h3><h3 data-en>Online converters</h3>
         <p data-ko>파일을 남의 서버에 올려야 해요. 사진 속 위치 정보와 문서 내용까지 같이요. 언제 지워지는지는 알 수 없어요.</p>
         <p data-en>You upload a copy to someone else's server, location data and all. When it's deleted is out of your hands.</p></div>
-      <div class="pv good"><h3>DragEdit</h3>
+      <div class="pv good"><h3 data-ko>한라봉</h3><h3 data-en>Hanlabong</h3>
         <p data-ko>변환·도구·동작 모두 내 맥 안에서. 원본은 절대 덮어쓰지 않아요. 로그에도 파일 내용과 이름을 남기지 않아요.</p>
         <p data-en>Conversions, tools and actions all run locally. Originals are never overwritten. Logs never record file contents or names.</p></div>
     </div>
@@ -567,8 +569,8 @@ html[lang="ko"] [data-en] { display: none !important; }
 
 <footer>
   <div class="wrap">
-    <div data-ko>DragEdit · MIT 라이선스. 파일 휠의 생각은 DragShift(MIT)에서 착안했어요. 빛줄기·생각 구슬은 libraries.dev(MIT). 이 페이지의 휠은 흉내 낸 체험판이에요.</div>
-    <div data-en>DragEdit · MIT License. The file wheel idea was inspired by DragShift (MIT). Border beam and thinking orbs from libraries.dev (MIT). The wheel on this page is a simulation.</div>
+    <div data-ko>한라봉(예전 이름 DragEdit) · MIT 라이선스. 이름은 Tangerine(귤)에서 따서 제주 한라봉으로. 파일 휠의 생각은 DragShift(MIT)에서 착안했어요. 빛줄기·생각 구슬은 libraries.dev(MIT). 이 페이지의 휠은 흉내 낸 체험판이에요.</div>
+    <div data-en>Hanlabong (formerly DragEdit) · MIT License. Named after Jeju's hallabong citrus, a nod to Tangerine. The file wheel idea was inspired by DragShift (MIT). Border beam and thinking orbs from libraries.dev (MIT). The wheel on this page is a simulation.</div>
   </div>
 </footer>
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# DragEdit.app 만들기: 빌드 → 앱으로 묶기 → 서명.
+# Hanlabong.app 만들기 (예전 이름 DragEdit — 실행 파일·식별자엔 그대로 남겨 둠): 빌드 → 앱으로 묶기 → 서명.
 #   scripts/build-app.sh            최적화된 배포용(release)
 #   scripts/build-app.sh debug      개발용(빌드가 빠름)
 #
@@ -53,7 +53,7 @@ if [ -z "$SIGN_IDENTITY" ]; then
   echo "⚠️  개발자 인증서가 없어서 임시로 서명해요. 다시 빌드하면 손쉬운 사용 권한을 다시 켜야 할 수 있어요."
 fi
 
-APP="build/DragEdit.app"
+APP="build/Hanlabong.app"
 # 실행 파일에 내 컴퓨터 경로(/Users/이름/...)가 박히지 않게, 소스 폴더 경로를 "DragEdit"로 바꿔 넣는다
 REPO="$(pwd)"
 PREFIX_MAP="-file-prefix-map $REPO=DragEdit"
@@ -87,18 +87,23 @@ else
   done
 fi
 
-rm -rf "$APP" build/Prism.app build/TextPopup.app  # 예전 이름으로 만든 앱도 정리
+rm -rf "$APP" build/DragEdit.app build/Prism.app build/TextPopup.app  # 예전 이름으로 만든 앱도 정리
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BINARY" "$APP/Contents/MacOS/DragEdit"
 # 배포용은 내부 이름표(심볼)를 걷어낸다: 파일이 작아지고, 남아 있을 수 있는 빌드 컴퓨터 경로도 지워진다
 [ "$CONFIG" = "Release" ] && strip -x "$APP/Contents/MacOS/DragEdit"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+# Finder·Dock에 보이는 이름: 한국어 맥은 "한라봉", 그 밖엔 "Hanlabong"
+cp -R Resources/ko.lproj Resources/en.lproj "$APP/Contents/Resources/"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 # 버전 이름표: 사용자에게 보이는 버전(예: 1.0.0)은 Info.plist에서, 빌드 번호는 git 커밋 수로 매번 올라간다
 BUILD_NUMBER="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$APP/Contents/Info.plist"
-# 개발용(debug)은 이름을 "DragEdit Dev"로: 권한 목록·Dock·메뉴에서 설치판(DragEdit)과 헷갈리지 않게
+# 개발용(debug)은 이름을 "Hanlabong Dev"로: 권한 목록·Dock·메뉴에서 설치판(Hanlabong)과 헷갈리지 않게
 if [ "$CONFIG" = "Debug" ]; then
-  /usr/libexec/PlistBuddy -c "Set :CFBundleName DragEdit Dev" -c "Set :CFBundleDisplayName DragEdit Dev" "$APP/Contents/Info.plist"
+  /usr/libexec/PlistBuddy -c "Set :CFBundleName Hanlabong Dev" -c "Set :CFBundleDisplayName Hanlabong Dev" "$APP/Contents/Info.plist"
+  printf '"CFBundleName" = "한라봉 Dev";\n"CFBundleDisplayName" = "한라봉 Dev";\n' > "$APP/Contents/Resources/ko.lproj/InfoPlist.strings"
+  printf '"CFBundleName" = "Hanlabong Dev";\n"CFBundleDisplayName" = "Hanlabong Dev";\n' > "$APP/Contents/Resources/en.lproj/InfoPlist.strings"
 fi
 for bundle in "${RESOURCE_BUNDLES[@]}"; do
   [ -e "$bundle" ] && cp -R "$bundle" "$APP/Contents/Resources/"

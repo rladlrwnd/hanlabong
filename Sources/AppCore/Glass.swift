@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftUI
 
@@ -26,6 +27,29 @@ package enum PopupGlass {
         defaults.set(defaultTint, forKey: tintKey)
         defaults.set(defaultBrightness, forKey: brightnessKey)
         defaults.set(defaultFollowSystem, forKey: followSystemKey)
+    }
+}
+
+/// 강조색: 휠에서 칸 위에 올렸을 때 칠하는 색. 기본은 한라봉 주황, 설정 › 일반 › 모양에서 바꾼다.
+/// 맥 시스템 강조색과 따로 간다(사용자가 고른 색을 hex 글자로 저장).
+package enum AppAccent {
+    package static let key = "accentColorHex"
+    package static let defaultHex = "#FFB347"
+
+    package static func color(_ hex: String) -> Color {
+        Color(nsColor: nsColor(hex) ?? nsColor(defaultHex)!)
+    }
+
+    package static func nsColor(_ hex: String) -> NSColor? {
+        let digits = hex.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "#", with: "")
+        guard digits.count == 6, let value = UInt32(digits, radix: 16) else { return nil }
+        return NSColor(srgbRed: CGFloat((value >> 16) & 0xFF) / 255, green: CGFloat((value >> 8) & 0xFF) / 255, blue: CGFloat(value & 0xFF) / 255, alpha: 1)
+    }
+
+    package static func hex(_ color: Color) -> String {
+        guard let c = NSColor(color).usingColorSpace(.sRGB) else { return defaultHex }
+        let to255 = { (v: CGFloat) in Int((min(max(v, 0), 1) * 255).rounded()) }
+        return String(format: "#%02X%02X%02X", to255(c.redComponent), to255(c.greenComponent), to255(c.blueComponent))
     }
 }
 

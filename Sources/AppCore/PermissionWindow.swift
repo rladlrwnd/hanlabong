@@ -100,13 +100,13 @@ private struct PermissionView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L("손쉬운 사용 권한을 켜줘", "Turn on Accessibility access"))
                         .font(.system(size: 22, weight: .bold))
-                    Text(L("다른 앱에서 드래그한 글자를 읽고, 바꾼 결과를 다시 넣으려면 맥의 ‘손쉬운 사용’ 권한이 필요해. 글자는 이 컴퓨터 밖으로 나가지 않아.", "To read text you select in other apps and put the result back, DragEdit needs macOS Accessibility access. Your text never leaves this computer."))
+                    Text(L("다른 앱에서 드래그한 글자를 읽고, 바꾼 결과를 다시 넣으려면 맥의 ‘손쉬운 사용’ 권한이 필요해. 글자는 이 컴퓨터 밖으로 나가지 않아.", "To read text you select in other apps and put the result back, Hanlabong needs macOS Accessibility access. Your text never leaves this computer."))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 VStack(alignment: .leading, spacing: 10) {
                     step(1, L("아래 **설정 열기**를 눌러", "Click **Open Settings** below"))
-                    step(2, L("목록에서 **DragEdit** 스위치를 켜 (비밀번호나 Touch ID를 물어보면 입력)", "Turn on the **DragEdit** switch in the list (enter your password or Touch ID if asked)"))
+                    step(2, L("목록에서 **한라봉** 스위치를 켜 (비밀번호나 Touch ID를 물어보면 입력)", "Turn on the **Hanlabong** switch in the list (enter your password or Touch ID if asked)"))
                     step(3, L("이 창으로 돌아오면 자동으로 확인돼", "Come back to this window and it checks automatically"))
                 }
                 Spacer(minLength: 0)

@@ -100,7 +100,7 @@ enum SearchablePDF {
     private static func makePDF(title: String, draw: (CGContext) -> Void) -> Data {
         let data = NSMutableData()
         guard let consumer = CGDataConsumer(data: data as CFMutableData),
-              let context = CGContext(consumer: consumer, mediaBox: nil, [kCGPDFContextTitle as String: title, kCGPDFContextCreator as String: "DragEdit"] as CFDictionary) else {
+              let context = CGContext(consumer: consumer, mediaBox: nil, [kCGPDFContextTitle as String: title, kCGPDFContextCreator as String: "Hanlabong"] as CFDictionary) else {
             return Data()
         }
         draw(context)
