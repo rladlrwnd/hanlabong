@@ -5,6 +5,7 @@ import Foundation
 /// - Word(.docx·.doc)·RTF·OpenDocument: macOS 문서 읽기(NSAttributedString)
 /// - HTML: 태그를 걷어내고 글만(스크립트·스타일 제외). 웹 엔진을 띄우지 않는다
 /// - PowerPoint(.pptx)·Excel(.xlsx)·한글(.hwpx): zip 안의 XML에서 글자만
+/// - 옛 한글(.hwp): HwpReader로 문단 글자만
 /// - 그 밖: 글 파일로 읽어 본다(UTF-8·UTF-16·EUC-KR). 글이 아니면(0 바이트가 섞임) 거절
 public enum DocumentReaders {
     public static let richExtensions: Set<String> = ["docx", "doc", "rtf", "rtfd", "odt", "wordml"]
@@ -19,7 +20,7 @@ public enum DocumentReaders {
 
     public static func isDocument(_ url: URL) -> Bool {
         let ext = url.pathExtension.lowercased()
-        return richExtensions.contains(ext) || zipXMLExtensions.contains(ext)
+        return richExtensions.contains(ext) || zipXMLExtensions.contains(ext) || ext == "hwp"
     }
 
     /// 형식에 맞게 글을 꺼낸다. 못 꺼내면 nil
@@ -29,6 +30,7 @@ public enum DocumentReaders {
             return (try? NSAttributedString(url: url, options: [:], documentAttributes: nil))?.string
         }
         if zipXMLExtensions.contains(ext) { return zipXMLText(url, ext: ext) }
+        if ext == "hwp" { return (try? HwpReader.paragraphs(url))?.joined(separator: "\n") }
         guard let data = try? Data(contentsOf: url) else { return nil }
         if data.prefix(8192).contains(0), !(data.prefix(2) == Data([0xFF, 0xFE]) || data.prefix(2) == Data([0xFE, 0xFF])) {
             return nil                                    // 0 바이트가 섞인 건 글 파일이 아니다

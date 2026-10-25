@@ -60,7 +60,7 @@ public enum RichDocumentReader {
         let title = url.deletingPathExtension().lastPathComponent
         let ext = url.pathExtension.lowercased()
         let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-        let rich = ["docx", "doc", "rtf", "rtfd", "odt", "wordml", "epub", "hwpx"].contains(ext)
+        let rich = ["docx", "doc", "rtf", "rtfd", "odt", "wordml", "epub", "hwpx", "hwp"].contains(ext)
         guard size <= (rich ? maxDocumentBytes : maxTextBytes) else { throw FileSkillError.tooLarge(name) }
         let paragraphs: [DocumentParagraph]
         switch ext {
@@ -71,6 +71,14 @@ public enum RichDocumentReader {
             paragraphs = fromAttributed(attributed)
         case "epub":
             paragraphs = try epub(url)
+        case "hwp":
+            do {
+                paragraphs = try HwpReader.paragraphs(url).map { DocumentParagraph(runs: [DocumentRun($0)]) }
+            } catch HwpReader.Failure.locked, HwpReader.Failure.distribution {
+                throw FileSkillError.lockedHangul(name)
+            } catch {
+                throw FileSkillError.unreadable(name)
+            }
         case "hwpx":
             guard let text = DocumentReaders.zipXMLText(url, ext: "hwpx") else { throw FileSkillError.unreadable(name) }
             paragraphs = text.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }.map { DocumentParagraph(runs: [DocumentRun($0)]) }

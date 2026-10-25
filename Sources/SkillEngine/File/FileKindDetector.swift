@@ -36,15 +36,15 @@ public enum FileKindDetector {
         return ["ftyp", "moov", "mdat", "wide", "free", "skip"].contains(tag)
     }
 
-    /// Word(.docx·.doc)·RTF·OpenDocument·EPUB: 확장자 + 앞부분 표시(zip은 "PK", 옛 Word는 OLE, RTF는 "{\\rtf")
+    /// Word(.docx·.doc)·RTF·OpenDocument·EPUB·한글(.hwpx·.hwp): 확장자 + 앞부분 표시(zip은 "PK", 옛 Word·옛 한글은 OLE, RTF는 "{\\rtf")
     private static func isDocument(_ url: URL) -> Bool {
         let ext = url.pathExtension.lowercased()
         if ext == "rtfd" { return FileManager.default.fileExists(atPath: url.appendingPathComponent("TXT.rtf").path) }
-        guard ["docx", "doc", "rtf", "odt", "epub", "wordml", "hwpx"].contains(ext), let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        guard ["docx", "doc", "rtf", "odt", "epub", "wordml", "hwpx", "hwp"].contains(ext), let handle = try? FileHandle(forReadingFrom: url) else { return false }
         defer { try? handle.close() }
         let head = (try? handle.read(upToCount: 8)) ?? Data()
         if head.starts(with: [0x50, 0x4B]) { return ["docx", "odt", "epub", "hwpx"].contains(ext) }
-        if head.starts(with: [0xD0, 0xCF, 0x11, 0xE0]) { return ext == "doc" }
+        if head.starts(with: [0xD0, 0xCF, 0x11, 0xE0]) { return ext == "doc" || ext == "hwp" }
         if head.starts(with: Array("{\\rtf".utf8)) { return ext == "rtf" || ext == "doc" }
         return ext == "wordml" || (ext == "doc" && !head.contains(0))
     }

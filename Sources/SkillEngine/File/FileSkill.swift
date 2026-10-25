@@ -290,6 +290,7 @@ public enum FileSkillError: LocalizedError, Equatable {
     case outputFolderNotWritable(String)
     case unsafeOutputPath
     case encryptedPDF(String)
+    case lockedHangul(String)
     case noTextInPDF(String)
     case noTextFound(String)
     case notText(String)
@@ -308,6 +309,7 @@ public enum FileSkillError: LocalizedError, Equatable {
         case .encodeFailed(let why): return L("저장 형식으로 바꾸지 못했어요: \(why)", "Couldn't encode the output: \(why)")
         case .outputFolderNotWritable(let folder): return L("“\(folder)” 폴더에 쓸 수 없어요 (읽기 전용이거나 권한이 없을 수 있어요)", "Can't write to the “\(folder)” folder (it may be read-only or need permission)")
         case .unsafeOutputPath: return L("결과 파일을 원본이 있는 폴더 밖에 저장하려고 해서 막았어요", "Blocked: the result would be saved outside the original's folder")
+        case .lockedHangul(let name): return L("“\(name)”은(는) 암호가 걸렸거나 배포용인 한글 문서라 내용을 꺼낼 수 없어요", "“\(name)” is a password-protected or distribution-only Hangul document")
         case .encryptedPDF(let name): return L("“\(name)”은(는) 암호가 걸린 PDF라 열 수 없어요", "“\(name)” is a password-protected PDF")
         case .noTextInPDF(let name): return L("“\(name)”에서 글자를 찾지 못했어요(빈 쪽이거나 글자가 너무 흐릴 수 있어요)", "No text found in “\(name)” (pages may be blank or too blurry)")
         case .noAudio(let name): return L("“\(name)”에는 소리가 없어요", "“\(name)” has no audio")
