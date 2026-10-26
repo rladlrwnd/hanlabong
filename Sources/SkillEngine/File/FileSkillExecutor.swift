@@ -92,6 +92,9 @@ public final class FileSkillExecutor: @unchecked Sendable {
                               fileExtension: "pptx", width: 0, height: 0)
         case .vectorize(let format)?:
             return try Vectorizer.run(input, format: format, cancellation: cancellation)
+        case .pdfPages(let edit)?:
+            let source = kind == .pdf ? try openPDF(input) : try PDFPageEditor.openExtra(input)
+            return FileResult(data: try PDFPageEditor.make(source, edit: edit), fileExtension: "pdf", width: 0, height: 0)
         case .pdfToSheet?:
             return FileResult(data: try PDFExports.sheet(try openPDF(input), title: input.lastPathComponent, cancellation: cancellation),
                               fileExtension: "xlsx", width: 0, height: 0)
@@ -124,9 +127,11 @@ public final class FileSkillExecutor: @unchecked Sendable {
                 loaded.image = Self.rotated(loaded.image, degrees: degrees)
             case .flip(let horizontal, let vertical):
                 loaded.image = Self.flipped(loaded.image, horizontal: horizontal, vertical: vertical)
+            case .straighten(let degrees):
+                loaded.image = Self.straightened(loaded.image, degrees: degrees)
             case .adjust(let brightness, let contrast, let saturation):
                 loaded.image = Self.adjusted(loaded.image, brightness: brightness, contrast: contrast, saturation: saturation)
-            case .video, .pdfToDocx, .pdfToText, .ocrText, .ocrPDF, .imageToPDF, .document, .pdfToImages, .pdfToSlides, .pdfToSheet, .vectorize:
+            case .video, .pdfToDocx, .pdfToText, .ocrText, .ocrPDF, .imageToPDF, .document, .pdfToImages, .pdfToSlides, .pdfToSheet, .vectorize, .pdfPages:
                 break   // 위에서 문서로 이미 처리했다(검사에서 사진 블록과 섞이지 않게 막는다)
             }
         }
@@ -159,6 +164,23 @@ public final class FileSkillExecutor: @unchecked Sendable {
         if horizontal { result = normalizedOrigin(result.oriented(.upMirrored)) }
         if vertical { result = normalizedOrigin(result.oriented(.downMirrored)) }
         return result
+    }
+
+    /// 수평 맞추기: 가운데를 기준으로 돌리고, 원래 비율 그대로 빈 모서리가 안 들어가는 가장 큰 안쪽만 남긴다.
+    /// 비율 s = min(w / (w·cos + h·sin), h / (w·sin + h·cos))
+    public static func straightened(_ image: CIImage, degrees: Double) -> CIImage {
+        let angle = min(max(degrees, -45), 45)
+        guard abs(angle) > 0.01 else { return image }
+        let extent = image.extent
+        let radians = angle * .pi / 180
+        let (w, h) = (extent.width, extent.height)
+        let (cosA, sinA) = (CGFloat(abs(cos(radians))), CGFloat(abs(sin(radians))))
+        let scale = min(w / (w * cosA + h * sinA), h / (w * sinA + h * cosA))
+        // 화면 좌표(위가 0)에서 시계 방향 +가 되도록 Core Image(아래가 0)에선 반대로 돌린다
+        let turn = CGAffineTransform(translationX: extent.midX, y: extent.midY).rotated(by: CGFloat(-radians)).translatedBy(x: -extent.midX, y: -extent.midY)
+        let rotated = image.clampedToExtent().transformed(by: turn)
+        let keep = CGRect(x: extent.midX - w * scale / 2, y: extent.midY - h * scale / 2, width: w * scale, height: h * scale).integral
+        return normalizedOrigin(rotated.cropped(to: keep))
     }
 
     public static func adjusted(_ image: CIImage, brightness: Double, contrast: Double, saturation: Double) -> CIImage {

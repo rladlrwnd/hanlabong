@@ -19,6 +19,7 @@ extension FileStep: Codable {
         case keepLineBreaks
         case degrees, horizontal, vertical, brightness, contrast, saturation
         case preset, trimStart, trimEnd, muted, videoFormat, documentFormat, imageFormat, dpi, vectorFormat
+        case pages, extraFiles
     }
 
     public init(from decoder: Decoder) throws {
@@ -80,6 +81,11 @@ extension FileStep: Codable {
         case "flip":
             self = .flip(horizontal: try c.decodeIfPresent(Bool.self, forKey: .horizontal) ?? false,
                          vertical: try c.decodeIfPresent(Bool.self, forKey: .vertical) ?? false)
+        case "straighten":
+            self = .straighten(degrees: try c.decode(Double.self, forKey: .degrees))
+        case "pdfPages":
+            self = .pdfPages(PDFPageEdit(pages: try c.decode([PDFPageEdit.Page].self, forKey: .pages),
+                                         extraFiles: try c.decodeIfPresent([String].self, forKey: .extraFiles) ?? []))
         case "adjust":
             self = .adjust(brightness: try c.decodeIfPresent(Double.self, forKey: .brightness) ?? 0,
                            contrast: try c.decodeIfPresent(Double.self, forKey: .contrast) ?? 1,
@@ -163,6 +169,13 @@ extension FileStep: Codable {
             try c.encode("flip", forKey: .block)
             if horizontal { try c.encode(true, forKey: .horizontal) }
             if vertical { try c.encode(true, forKey: .vertical) }
+        case .straighten(let degrees):
+            try c.encode("straighten", forKey: .block)
+            try c.encode(degrees, forKey: .degrees)
+        case .pdfPages(let edit):
+            try c.encode("pdfPages", forKey: .block)
+            try c.encode(edit.pages, forKey: .pages)
+            if !edit.extraFiles.isEmpty { try c.encode(edit.extraFiles, forKey: .extraFiles) }
         case .adjust(let brightness, let contrast, let saturation):
             try c.encode("adjust", forKey: .block)
             try c.encode(brightness, forKey: .brightness)

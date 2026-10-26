@@ -12,7 +12,7 @@ package enum AITask: Equatable, Sendable {
 
 /// 놓으면 편집 창이 열리는 칸(결과는 창에서 "저장"을 눌러야 만들어진다)
 package enum EditKind: Equatable, Sendable {
-    case image, video
+    case image, video, pdf
 }
 
 /// 동작 휠(⌃) 칸: 파일을 바꾸지 않고 다루는 일. 폴더·여러 종류가 섞인 선택에도 쓴다.

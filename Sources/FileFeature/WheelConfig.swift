@@ -237,6 +237,8 @@ package enum WheelActionCatalog {
         case "vector": return WheelItem(id: "vector", title: L("벡터 재구성", "Vectorize"), symbol: "scribble.variable", subtitle: L("곧 지원해요", "Coming soon"), isComingSoon: true)
         case "crop": return WheelItem(id: "crop", title: L("편집", "Edit"), symbol: "crop", subtitle: L("자르기·회전·보정", "Crop · rotate · adjust"), edit: .image)
         case "vedit": return WheelItem(id: "vedit", title: L("편집", "Edit"), symbol: "scissors", subtitle: L("구간 자르기·소리 끄기", "Trim · mute"), edit: .video)
+        case "pedit": return WheelItem(id: "pedit", title: L("편집", "Edit"), symbol: "doc.on.doc", subtitle: L("쪽 순서·돌리기·빼기·추가", "Reorder · rotate · remove · add pages"), edit: .pdf)
+        case "pmerge": return WheelItem(id: "pmerge", title: L("합치기", "Merge"), symbol: "rectangle.stack.badge.plus", subtitle: L("여러 PDF·사진을 PDF 하나로", "Several PDFs or photos into one PDF"), edit: .pdf)
         case "hwp": return WheelItem(id: "hwp", title: L("한글", "Hangul"), symbol: "doc.richtext", subtitle: L("곧 지원해요 (.hwpx)", "Coming soon (.hwpx)"), isComingSoon: true)
         default: return nil
         }

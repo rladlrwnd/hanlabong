@@ -6,11 +6,17 @@ extension WheelLayout {
     /// 도구 휠: 파일 종류에 맞는 손질 도구(편집·회전·반전·용량 줄이기 등)
     package static func tools(forDraggedFileExtensions extensions: [String], ai: AIDestination? = nil) -> WheelLayout {
         let kinds = Set(extensions.compactMap { FileKindGuess.kind(forExtension: $0) })
+        // 여러 개를 끌면(PDF·사진만) 맨 앞에 "합치기": PDF 편집 창에 차례대로 담아서 연다
+        let canMerge = extensions.count > 1 && !kinds.isEmpty && kinds.isSubset(of: [.pdf, .image])
+        let merge = WheelItem(id: "pmerge", title: L("합치기", "Merge"), symbol: "rectangle.stack.badge.plus", subtitle: L("여러 PDF·사진을 PDF 하나로", "Several PDFs or photos into one PDF"), edit: .pdf)
         func group(_ id: String, _ title: String, _ symbol: String, _ skills: [FileSkill]) -> WheelItem {
             WheelItem(id: id, title: title, symbol: symbol, children: skills.map(WheelItem.init(skill:)))
         }
+        if canMerge, kinds.contains(.pdf) {
+            return WheelLayout(slots: [merge, whatIsItem(ai)], mode: .tools)
+        }
         if kinds.contains(.image) || kinds.contains(.raw) {
-            return WheelLayout(slots: [
+            return WheelLayout(slots: (canMerge ? [merge] : []) + [
                 WheelItem(id: "crop", title: L("편집", "Edit"), symbol: "crop", subtitle: L("자르기·회전·보정", "Crop · rotate · adjust"), edit: .image),
                 group("rotate", L("회전", "Rotate"), "rotate.right", [DefaultFileSkills.rotateRight, DefaultFileSkills.rotateLeft, DefaultFileSkills.rotateHalf]),
                 group("flip", L("반전", "Flip"), "arrow.left.and.right.righttriangle.left.righttriangle.right", [DefaultFileSkills.flipHorizontal, DefaultFileSkills.flipVertical]),
@@ -26,6 +32,7 @@ extension WheelLayout {
         }
         if kinds.contains(.pdf) {
             return WheelLayout(slots: [
+                WheelItem(id: "pedit", title: L("편집", "Edit"), symbol: "doc.on.doc", subtitle: L("쪽 순서·돌리기·빼기·추가", "Reorder · rotate · remove · add pages"), edit: .pdf),
                 WheelItem(skill: DefaultFileSkills.pdfAddText),
                 whatIsItem(ai),
             ], mode: .tools)

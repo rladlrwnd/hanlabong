@@ -157,6 +157,10 @@ package struct ImageEditDraft: Equatable {
     package var brightness = 0.0
     package var contrast = 1.0
     package var saturation = 1.0
+    /// 수평 맞추기(-45~45도, 시계 방향 +). 돌린 뒤 빈 모서리가 안 보이게 안쪽만 남긴다
+    package var straighten = 0.0
+    /// 저장할 때 긴 변을 이 크기로 줄인다(nil = 원래 크기, 작은 사진은 키우지 않는다)
+    package var longEdge: Int?
     /// 원본 사진의 확장자(저장 형식을 정한다)
     package var sourceExtension: String
 
@@ -167,6 +171,7 @@ package struct ImageEditDraft: Equatable {
 
     package var hasChanges: Bool {
         !crop.isFull || rotation != 0 || flipHorizontal || flipVertical || brightness != 0 || contrast != 1 || saturation != 1
+            || abs(straighten) > 0.01 || longEdge != nil
     }
 
     package mutating func rotate(clockwise: Bool) {
@@ -193,12 +198,14 @@ package struct ImageEditDraft: Equatable {
         var steps: [FileStep] = [.decode]
         if rotation != 0 { steps.append(.rotate(degrees: rotation)) }
         if flipHorizontal || flipVertical { steps.append(.flip(horizontal: flipHorizontal, vertical: flipVertical)) }
+        if abs(straighten) > 0.01 { steps.append(.straighten(degrees: straighten)) }
         if !crop.isFull {
             steps.append(.crop(CropSpec(rect: .init(x: crop.rect.minX, y: crop.rect.minY, width: crop.rect.width, height: crop.rect.height))))
         }
         if brightness != 0 || contrast != 1 || saturation != 1 {
             steps.append(.adjust(brightness: brightness, contrast: contrast, saturation: saturation))
         }
+        if let longEdge { steps.append(.resize(.longEdge(longEdge))) }
         steps.append(.colorspace(.keep))
         steps.append(.metadata(MetadataSpec(mode: .keepAll)))
         steps.append(.encode(EncodeSpec(format: outputFormat, quality: outputFormat.isLossy ? 0.95 : nil)))

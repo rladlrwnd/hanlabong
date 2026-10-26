@@ -54,13 +54,15 @@ final class ImageEditorModel: ObservableObject {
 
     func refreshPreview() {
         preview = ImageEditPreview.render(base, rotation: draft.rotation, flipHorizontal: draft.flipHorizontal, flipVertical: draft.flipVertical,
-                                          brightness: draft.brightness, contrast: draft.contrast, saturation: draft.saturation)
+                                          straighten: draft.straighten, brightness: draft.brightness, contrast: draft.contrast, saturation: draft.saturation)
     }
 }
 
 struct ImageEditorView: View {
-    static let cardSize = CGSize(width: 980, height: 700)
+    static let cardSize = CGSize(width: 980, height: 740)
     static let margin: CGFloat = 30
+    /// 저장 크기(긴 변). nil은 원래 크기
+    private static let sizes: [Int?] = [nil, 4000, 3000, 2048, 1080]
 
     @ObservedObject var model: ImageEditorModel
     let fileName: String
@@ -105,10 +107,29 @@ struct ImageEditorView: View {
                 .controlSize(.small)
             }
 
+            HStack(spacing: 10) {
+                Image(systemName: "level").foregroundStyle(.secondary)
+                Text(L("수평", "Straighten")).font(.caption)
+                // 끄는 동안에도 바로 보이게(작은 미리보기라 가볍다)
+                ResettableSlider(value: $model.draft.straighten, range: -45...45, defaultValue: 0, onChange: { model.refreshPreview() })
+                    .frame(width: 260)
+                Text(String(format: "%+.1f°", model.draft.straighten)).font(.caption).monospacedDigit().frame(width: 46, alignment: .trailing)
+                Button(L("0°", "0°")) { model.draft.straighten = 0; model.refreshPreview() }
+                    .buttonStyle(.glass).controlSize(.small).disabled(model.draft.straighten == 0)
+                Spacer()
+                Picker(L("저장 크기", "Save size"), selection: $model.draft.longEdge) {
+                    ForEach(Self.sizes, id: \.self) { size in
+                        Text(size.map { L("긴 변 \($0)px", "Long edge \($0)px") } ?? L("원래 크기", "Original size")).tag(size)
+                    }
+                }
+                .frame(width: 240)
+                .controlSize(.small)
+            }
+
             HStack(spacing: 18) {
-                slider(L("밝기", "Brightness"), $model.draft.brightness, -0.5...0.5)
-                slider(L("대비", "Contrast"), $model.draft.contrast, 0.5...1.5)
-                slider(L("채도", "Saturation"), $model.draft.saturation, 0...2)
+                slider(L("밝기", "Brightness"), $model.draft.brightness, -0.5...0.5, reset: 0)
+                slider(L("대비", "Contrast"), $model.draft.contrast, 0.5...1.5, reset: 1)
+                slider(L("채도", "Saturation"), $model.draft.saturation, 0...2, reset: 1)
                 Button(L("보정 초기화", "Reset adjustments")) { model.draft.resetAdjustments(); model.refreshPreview() }
                     .buttonStyle(.glass).controlSize(.small)
             }
@@ -136,10 +157,11 @@ struct ImageEditorView: View {
 
     private var fileNameBase: String { (fileName as NSString).deletingPathExtension }
 
-    private func slider(_ title: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
+    private func slider(_ title: String, _ value: Binding<Double>, _ range: ClosedRange<Double>, reset: Double) -> some View {
         HStack(spacing: 6) {
             Text(title).font(.caption).frame(width: 28, alignment: .leading)
-            Slider(value: value, in: range) { editing in if !editing { model.refreshPreview() } }
+            // 손을 떼면 미리보기를 다시 그린다. 두 번 누르면 원래 값
+            ResettableSlider(value: value, range: range, defaultValue: reset, onCommit: { model.refreshPreview() })
                 .frame(width: 140)
         }
     }

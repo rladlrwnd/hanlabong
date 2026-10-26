@@ -1,5 +1,6 @@
 import AppCore
 import AppKit
+import PDFKit
 import SkillEngine
 import SwiftUI
 
@@ -128,7 +129,7 @@ package final class FileFeatureController {
             return
         }
         if let edit = item.edit {
-            openEditor(edit, url: urls[0])
+            openEditor(edit, urls: urls)
             return
         }
         if let action = item.fileAction {
@@ -146,7 +147,8 @@ package final class FileFeatureController {
 
     private var editors: [UUID: EditorController] = [:]
 
-    private func openEditor(_ kind: EditKind, url: URL) {
+    private func openEditor(_ kind: EditKind, urls: [URL]) {
+        let url = urls[0]
         let id = UUID()
         let anchor = wheel.lastCenter
         wheel.beginWork(total: 1)
@@ -162,6 +164,20 @@ package final class FileFeatureController {
             controller = EditorController(contentSize: ImageEditorView.cardSize, margin: ImageEditorView.margin) { [weak self] close in
                 AnyView(ImageEditorView(model: model, fileName: url.lastPathComponent,
                                         save: { skill in self?.runSkill(skill, urls: [url], fromWheel: false, anchor: anchor) }, close: close))
+            }
+        case .pdf:
+            // 첫 파일이 원본(PDF 또는 사진), 나머지는 차례대로 뒤에 붙인다(합치기)
+            let document: PDFDocument
+            do {
+                document = try PDFPageEditor.openExtra(url)
+            } catch {
+                showAlert(L("PDF를 열지 못했어요", "Couldn't open the PDF"), (error as? LocalizedError)?.errorDescription ?? L("“\(url.lastPathComponent)”을(를) 읽을 수 없어요.", "Can't read “\(url.lastPathComponent)”."))
+                return
+            }
+            let model = PDFEditorModel(url: url, document: document, merging: Array(urls.dropFirst()))
+            controller = EditorController(contentSize: PDFEditorView.cardSize, margin: PDFEditorView.margin) { [weak self] close in
+                AnyView(PDFEditorView(model: model,
+                                      save: { skill in self?.runSkill(skill, urls: [url], fromWheel: false, anchor: anchor) }, close: close))
             }
         case .video:
             let model = VideoEditorModel(url: url)

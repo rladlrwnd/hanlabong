@@ -216,6 +216,8 @@ public enum FileStep: Equatable, Sendable {
     /// 90도 단위 회전(시계 방향: 90·180·270)
     case rotate(degrees: Int)
     case flip(horizontal: Bool, vertical: Bool)
+    /// 수평 맞추기: 조금(-45~45도) 돌리고, 돌리며 생긴 빈 모서리가 안 보이게 같은 비율로 안쪽만 남긴다
+    case straighten(degrees: Double)
     /// 밝기(-1~1, 0=그대로)·대비(0.25~4, 1=그대로)·채도(0~2, 1=그대로)
     case adjust(brightness: Double, contrast: Double, saturation: Double)
     /// 영상 변환·자르기·소리 끄기·소리만 뽑기
@@ -234,11 +236,13 @@ public enum FileStep: Equatable, Sendable {
     case pdfToSheet
     /// 스캔한 로고·선화 → 벡터(SVG·PDF)
     case vectorize(VectorFormat)
+    /// PDF 쪽 편집: 순서 바꾸기·돌리기·지우기·다른 PDF·사진 쪽 끼워 넣기(글자는 건드리지 않는다)
+    case pdfPages(PDFPageEdit)
 
     /// 결과 파일을 만드는 마지막 블록인지
     public var isOutput: Bool {
         switch self {
-        case .encode, .pdfToDocx, .pdfToText, .ocrText, .ocrPDF, .imageToPDF, .video, .document, .pdfToImages, .pdfToSlides, .pdfToSheet, .vectorize: return true
+        case .encode, .pdfToDocx, .pdfToText, .ocrText, .ocrPDF, .imageToPDF, .video, .document, .pdfToImages, .pdfToSlides, .pdfToSheet, .vectorize, .pdfPages: return true
         default: return false
         }
     }
@@ -246,9 +250,28 @@ public enum FileStep: Equatable, Sendable {
     /// 문서를 만드는 블록인지(사진 블록과 섞을 수 없다)
     public var isDocumentOutput: Bool {
         switch self {
-        case .pdfToDocx, .pdfToText, .ocrText, .ocrPDF, .imageToPDF, .video, .document, .pdfToImages, .pdfToSlides, .pdfToSheet, .vectorize: return true
+        case .pdfToDocx, .pdfToText, .ocrText, .ocrPDF, .imageToPDF, .video, .document, .pdfToImages, .pdfToSlides, .pdfToSheet, .vectorize, .pdfPages: return true
         default: return false
         }
+    }
+}
+
+/// PDF 쪽 편집 결과: 새 PDF에 들어갈 쪽을 순서대로.
+/// `file` 0은 편집한 원본, 1부터는 `extraFiles`(끼워 넣은 PDF·사진)의 순번. `rotation`은 원래 방향에 더할 각도(90 단위).
+public struct PDFPageEdit: Codable, Equatable, Sendable {
+    public struct Page: Codable, Equatable, Sendable {
+        public var file: Int
+        public var index: Int
+        public var rotation: Int
+        public init(file: Int = 0, index: Int, rotation: Int = 0) {
+            self.file = file; self.index = index; self.rotation = rotation
+        }
+    }
+    public var pages: [Page]
+    public var extraFiles: [String]
+    public init(pages: [Page], extraFiles: [String] = []) {
+        self.pages = pages
+        self.extraFiles = extraFiles
     }
 }
 
@@ -384,6 +407,10 @@ extension FileStep {
             return L("\(degrees)° 회전", "Rotate \(degrees)°")
         case .flip(let horizontal, let vertical):
             return [horizontal ? L("좌우 반전", "Flip horizontal") : nil, vertical ? L("상하 반전", "Flip vertical") : nil].compactMap { $0 }.joined(separator: "·")
+        case .straighten(let degrees):
+            return L("수평 \(String(format: "%+.1f", degrees))°", "Straighten \(String(format: "%+.1f", degrees))°")
+        case .pdfPages(let edit):
+            return L("PDF \(edit.pages.count)쪽으로", "PDF with \(edit.pages.count) pages")
         case .adjust:
             return L("밝기·대비·채도 조정", "Brightness · contrast · saturation")
         case .video(let spec):

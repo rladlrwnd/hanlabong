@@ -20,11 +20,12 @@ public enum ImageEditPreview {
         throw FileSkillError.unreadable(url.lastPathComponent)
     }
 
-    public static func render(_ image: CGImage, rotation: Int, flipHorizontal: Bool, flipVertical: Bool,
+    public static func render(_ image: CGImage, rotation: Int, flipHorizontal: Bool, flipVertical: Bool, straighten: Double = 0,
                               brightness: Double, contrast: Double, saturation: Double) -> CGImage {
         var ci = CIImage(cgImage: image)
         ci = FileSkillExecutor.rotated(ci, degrees: rotation)
         ci = FileSkillExecutor.flipped(ci, horizontal: flipHorizontal, vertical: flipVertical)
+        ci = FileSkillExecutor.straightened(ci, degrees: straighten)
         ci = FileSkillExecutor.adjusted(ci, brightness: brightness, contrast: contrast, saturation: saturation)
         return context.createCGImage(ci, from: ci.extent, format: .RGBA8, colorSpace: image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)) ?? image
     }
