@@ -129,6 +129,10 @@ public final class FileSkillExecutor: @unchecked Sendable {
                 loaded.image = Self.flipped(loaded.image, horizontal: horizontal, vertical: vertical)
             case .straighten(let degrees):
                 loaded.image = Self.straightened(loaded.image, degrees: degrees)
+            case .develop(let settings):
+                loaded.image = Developer.apply(settings, to: loaded.image)
+            case .sharpen(let spec):
+                loaded.image = Self.outputSharpened(loaded.image, spec)
             case .adjust(let brightness, let contrast, let saturation):
                 loaded.image = Self.adjusted(loaded.image, brightness: brightness, contrast: contrast, saturation: saturation)
             case .video, .pdfToDocx, .pdfToText, .ocrText, .ocrPDF, .imageToPDF, .document, .pdfToImages, .pdfToSlides, .pdfToSheet, .vectorize, .pdfPages:
@@ -181,6 +185,17 @@ public final class FileSkillExecutor: @unchecked Sendable {
         let rotated = image.clampedToExtent().transformed(by: turn)
         let keep = CGRect(x: extent.midX - w * scale / 2, y: extent.midY - h * scale / 2, width: w * scale, height: h * scale).integral
         return normalizedOrigin(rotated.cropped(to: keep))
+    }
+
+    /// 출력 선명하게: 화면은 가늘게, 인쇄는 잉크가 번지는 만큼 더 굵게(무광 > 유광). 픽셀 기준이라 크기를 정한 뒤에 건다
+    public static func outputSharpened(_ image: CIImage, _ spec: OutputSharpening) -> CIImage {
+        let radius: Float = spec.medium == .screen ? 0.8 : spec.medium == .glossy ? 1.4 : 2.0
+        let intensity: Float = [OutputSharpening.Amount.low: 0.3, .standard: 0.55, .high: 0.85][spec.amount] ?? 0.55
+        let f = CIFilter.unsharpMask()
+        f.inputImage = image.clampedToExtent()
+        f.radius = radius
+        f.intensity = intensity
+        return (f.outputImage ?? image).cropped(to: image.extent)
     }
 
     public static func adjusted(_ image: CIImage, brightness: Double, contrast: Double, saturation: Double) -> CIImage {
@@ -350,6 +365,8 @@ public final class FileSkillExecutor: @unchecked Sendable {
         case .longEdge(let n): scale = Double(n) / longEdge
         case .shortEdge(let n): scale = Double(n) / shortEdge
         case .percent(let p): scale = p / 100
+        case .fit(let w, let h): scale = min(Double(w) / Double(extent.width), Double(h) / Double(extent.height))
+        case .megapixels(let mp): scale = (mp * 1_000_000 / (Double(extent.width) * Double(extent.height))).squareRoot()
         }
         guard scale > 0, scale != 1, scale < 1 || allowUpscale else { return image }
         return scaled(image, toWidth: max(1, Int((Double(extent.width) * scale).rounded())),
@@ -510,6 +527,10 @@ public final class FileSkillExecutor: @unchecked Sendable {
                 source: loaded.properties, spec: metadata, width: size.0, height: size.1,
                 outputIsSRGB: outSpace.name == CGColorSpace.sRGB
             )
+            if let dpi = spec.dpi {
+                props[kCGImagePropertyDPIWidth as String] = dpi
+                props[kCGImagePropertyDPIHeight as String] = dpi
+            }
             if spec.format == .tiff {
                 var tiff = props[kCGImagePropertyTIFFDictionary as String] as? [String: Any] ?? [:]
                 tiff[kCGImagePropertyTIFFCompression as String] = 5  // LZW (무손실)

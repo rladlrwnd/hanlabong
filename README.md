@@ -78,6 +78,13 @@ AirDrop · **띄워두기**(화면 오른쪽 유리 선반에 올려두고 나�
 
 ---
 
+## 애드온 (따로 된 앱)
+
+설치 마법사의 "사용자화"에서 고를 수 있어요. 한라봉 휠 ⌘ 도구 휠에서 바로 열려요.
+
+- **Hanlabong Developing**: 라이트룸처럼 사진 현상. 노출·대비·하이라이트·섀도·화이트·블랙, 색온도·색조·생동감·채도, 선명도·비네트·그레인·흑백. 휠의 "현상" 칸에는 프리셋 세 개가 들어 있어서 놓기만 하면 바로 바뀌고, "…"에 놓으면 슬라이더 창이 열려요. 창에서 지금 값을 휠 칸에 저장할 수 있어요(프리셋 칸 오른쪽 클릭). 원본은 그대로 두고 옆에 `_dev`로 저장해요.
+- **Hanlabong PDF**: PDF 보기(쪽 그림·두 쪽·찾기), 형광펜·밑줄·취소선·메모·글자, 쪽 정리(순서·돌리기·빼기·끼워 넣기), 합치기, 나누기, 암호 걸기·풀기, 용량 줄이기, 서식 칸 채우기. 한글·Word·사진도 PDF로 바꿔서 열어요. ⌘Z로 되돌리고, 저장은 원본 옆에 새 파일로.
+
 ## 글자 팝업
 
 | 키 | 동작 |
@@ -163,6 +170,7 @@ MIT — [LICENSE](LICENSE). Vendor 폴더의 세 패키지도 MIT(각 폴더의 
 
 - 파일 휠의 생각(파일을 끌면서 수정키 → 꽃잎 모양 휠 → 원본 옆에 저장)은 [DragShift](https://github.com/llamaboi55/DragShift) (MIT, © llamaboi55)에서 착안했어요. 코드는 가져오지 않았고 Swift로 새로 만들었어요.
 - 변환 범위와 ⇧/⌘/⌃ 세 휠 구성은 [Tangerine](https://tangerineformac.com)을 참고했어요.
+- 애드온은 ArtCraft의 오픈소스 [LightCraft](https://github.com/storytold/lightcraft)(Hanlabong Developing)와 [PdfCraft](https://github.com/storytold/pdfcraft)(Hanlabong PDF)의 기능 구성을 참고했어요(MIT OR Apache-2.0). 코드는 가져오지 않았고 맥의 Core Image·PDFKit으로 새로 만들었어요. ArtCraft의 이름·로고는 쓰지 않아요.
 - 빛줄기·생각 구슬·봇 아바타: [libraries.dev](https://libraries.dev) (MIT).
 
 ---
@@ -178,4 +186,4 @@ MIT — [LICENSE](LICENSE). Vendor 폴더의 세 패키지도 MIT(각 폴더의 
   - Actions: AirDrop, Float shelf, copy/move to recent folders, copy path, open in Terminal — works on folders too.
 - Everything runs on your Mac. The UI is available in Korean and English (Settings › General › Language).
 
-Download the `.pkg` from Releases (it is not notarized yet: on first open use System Settings › Privacy & Security › Open Anyway), or build with `scripts/install.sh` (Command Line Tools are enough). Inspired by [DragShift](https://github.com/llamaboi55/DragShift) (MIT) and [Tangerine](https://tangerineformac.com).
+Download the `.pkg` from Releases (it is not notarized yet: on first open use System Settings › Privacy & Security › Open Anyway), or build with `scripts/install.sh` (Command Line Tools are enough). Inspired by [DragShift](https://github.com/llamaboi55/DragShift) (MIT) and [Tangerine](https://tangerineformac.com). Optional add-ons: **Hanlabong Developing** (Lightroom-style photo developing, with three develop presets right in the ⌘ wheel) and **Hanlabong PDF** (view, annotate, organize, merge, split, password, compress), whose feature sets follow ArtCraft's open-source [LightCraft](https://github.com/storytold/lightcraft) and [PdfCraft](https://github.com/storytold/pdfcraft) (MIT OR Apache-2.0), rebuilt from scratch on Core Image and PDFKit.

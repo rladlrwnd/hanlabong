@@ -19,7 +19,7 @@ extension FileStep: Codable {
         case keepLineBreaks
         case degrees, horizontal, vertical, brightness, contrast, saturation
         case preset, trimStart, trimEnd, muted, videoFormat, documentFormat, imageFormat, dpi, vectorFormat
-        case pages, extraFiles
+        case pages, extraFiles, settings, fitWidth, fitHeight, megapixels, medium, amount
     }
 
     public init(from decoder: Decoder) throws {
@@ -38,6 +38,10 @@ extension FileStep: Codable {
                 self = .resize(.shortEdge(n), allowUpscale: upscale)
             } else if let p = try c.decodeIfPresent(Double.self, forKey: .percent) {
                 self = .resize(.percent(p), allowUpscale: upscale)
+            } else if let w = try c.decodeIfPresent(Int.self, forKey: .fitWidth), let h = try c.decodeIfPresent(Int.self, forKey: .fitHeight) {
+                self = .resize(.fit(width: w, height: h), allowUpscale: upscale)
+            } else if let mp = try c.decodeIfPresent(Double.self, forKey: .megapixels) {
+                self = .resize(.megapixels(mp), allowUpscale: upscale)
             } else {
                 throw DecodingError.dataCorruptedError(forKey: .block, in: c, debugDescription: L("resize에는 longEdge, shortEdge, percent 중 하나가 필요해요", "resize needs one of longEdge, shortEdge, percent"))
             }
@@ -70,7 +74,8 @@ extension FileStep: Codable {
                 format: try c.decode(OutputFormat.self, forKey: .format),
                 quality: try c.decodeIfPresent(Double.self, forKey: .quality),
                 maxBytes: try c.decodeIfPresent(Int.self, forKey: .maxBytes),
-                sameAsInput: try c.decodeIfPresent(Bool.self, forKey: .sameAsInput) ?? false
+                sameAsInput: try c.decodeIfPresent(Bool.self, forKey: .sameAsInput) ?? false,
+                dpi: try c.decodeIfPresent(Int.self, forKey: .dpi)
             ))
         case "pdfToDocx":
             self = .pdfToDocx
@@ -81,6 +86,11 @@ extension FileStep: Codable {
         case "flip":
             self = .flip(horizontal: try c.decodeIfPresent(Bool.self, forKey: .horizontal) ?? false,
                          vertical: try c.decodeIfPresent(Bool.self, forKey: .vertical) ?? false)
+        case "sharpen":
+            self = .sharpen(OutputSharpening(medium: try c.decodeIfPresent(OutputSharpening.Medium.self, forKey: .medium) ?? .screen,
+                                             amount: try c.decodeIfPresent(OutputSharpening.Amount.self, forKey: .amount) ?? .standard))
+        case "develop":
+            self = .develop(try c.decodeIfPresent(DevelopSettings.self, forKey: .settings) ?? DevelopSettings())
         case "straighten":
             self = .straighten(degrees: try c.decode(Double.self, forKey: .degrees))
         case "pdfPages":
@@ -132,6 +142,8 @@ extension FileStep: Codable {
             case .longEdge(let n): try c.encode(n, forKey: .longEdge)
             case .shortEdge(let n): try c.encode(n, forKey: .shortEdge)
             case .percent(let p): try c.encode(p, forKey: .percent)
+            case .fit(let w, let h): try c.encode(w, forKey: .fitWidth); try c.encode(h, forKey: .fitHeight)
+            case .megapixels(let mp): try c.encode(mp, forKey: .megapixels)
             }
             if allowUpscale { try c.encode(true, forKey: .allowUpscale) }
         case .crop(let spec):
@@ -169,6 +181,13 @@ extension FileStep: Codable {
             try c.encode("flip", forKey: .block)
             if horizontal { try c.encode(true, forKey: .horizontal) }
             if vertical { try c.encode(true, forKey: .vertical) }
+        case .sharpen(let spec):
+            try c.encode("sharpen", forKey: .block)
+            try c.encode(spec.medium, forKey: .medium)
+            try c.encode(spec.amount, forKey: .amount)
+        case .develop(let settings):
+            try c.encode("develop", forKey: .block)
+            try c.encode(settings, forKey: .settings)
         case .straighten(let degrees):
             try c.encode("straighten", forKey: .block)
             try c.encode(degrees, forKey: .degrees)
@@ -214,6 +233,7 @@ extension FileStep: Codable {
             if let quality = spec.quality { try c.encode(quality, forKey: .quality) }
             if let max = spec.maxBytes { try c.encode(max, forKey: .maxBytes) }
             if spec.sameAsInput { try c.encode(true, forKey: .sameAsInput) }
+            if let dpi = spec.dpi { try c.encode(dpi, forKey: .dpi) }
         }
     }
 }

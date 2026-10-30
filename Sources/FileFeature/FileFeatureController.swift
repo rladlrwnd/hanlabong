@@ -149,6 +149,17 @@ package final class FileFeatureController {
 
     private func openEditor(_ kind: EditKind, urls: [URL]) {
         let url = urls[0]
+        if case .addon(let addon) = kind {
+            wheel.beginWork(total: 1)
+            if AddonLauncher.open(addon, files: urls) {
+                wheel.finish(succeeded: 1, failed: 0)
+            } else {
+                wheel.finish(succeeded: 0, failed: 1)
+                showAlert(L("\(addon.appName)이(가) 없어요", "\(addon.appName) isn't installed"),
+                          L("한라봉 설치 파일에서 \(addon.appName)을(를) 체크해서 설치하면 휠에서 바로 열려요.", "Install \(addon.appName) from the Hanlabong installer and it opens right from the wheel."))
+            }
+            return
+        }
         let id = UUID()
         let anchor = wheel.lastCenter
         wheel.beginWork(total: 1)
@@ -179,6 +190,8 @@ package final class FileFeatureController {
                 AnyView(PDFEditorView(model: model,
                                       save: { skill in self?.runSkill(skill, urls: [url], fromWheel: false, anchor: anchor) }, close: close))
             }
+        case .addon:
+            return   // 위에서 이미 넘겼다
         case .video:
             let model = VideoEditorModel(url: url)
             controller = EditorController(contentSize: VideoEditorView.cardSize, margin: VideoEditorView.margin) { [weak self] close in

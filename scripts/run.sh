@@ -6,5 +6,7 @@ cd "$(dirname "$0")/.."
 pkill -x DragEdit 2>/dev/null || true  # 실행 파일 이름은 예전 그대로
 pkill -x Prism 2>/dev/null || true  # 예전 이름
 pkill -x TextPopup 2>/dev/null || true
+pkill -x HanlabongDeveloping 2>/dev/null || true  # 애드온도 새 빌드로
+pkill -x HanlabongPDF 2>/dev/null || true
 sleep 0.3
 open build/Hanlabong.app

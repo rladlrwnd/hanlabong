@@ -1,8 +1,21 @@
+import AppCore
 import Foundation
 import SkillEngine
 
 /// 도구 휠(⌘)과 동작 휠(⌃), 그리고 휠 종류를 고르는 규칙
 extension WheelLayout {
+    /// 현상 칸: 프리셋 세 개 + "…"(Hanlabong Developing에서 슬라이더로)
+    package static func developItem() -> WheelItem {
+        let presets = DevelopPresetStore.load().map { WheelItem(skill: DevelopPresetStore.skill(for: $0)) }
+        let more = WheelItem(id: "develop-more", title: "…", symbol: "slider.horizontal.3",
+                             subtitle: L("Hanlabong Developing에서 슬라이더로", "Fine-tune with sliders in Hanlabong Developing"), edit: .addon(.developing))
+        return WheelItem(id: "develop", title: L("현상", "Develop"), symbol: "camera.aperture", children: presets + [more])
+    }
+
+    /// PDF를 Hanlabong PDF에서 열기
+    package static let pdfAddonItem = WheelItem(id: "pdf-addon", title: "Hanlabong PDF", symbol: "doc.richtext",
+                                                subtitle: L("보기·주석·나누기·암호", "View · annotate · split · password"), edit: .addon(.pdf))
+
     /// 도구 휠: 파일 종류에 맞는 손질 도구(편집·회전·반전·용량 줄이기 등)
     package static func tools(forDraggedFileExtensions extensions: [String], ai: AIDestination? = nil) -> WheelLayout {
         let kinds = Set(extensions.compactMap { FileKindGuess.kind(forExtension: $0) })
@@ -18,6 +31,7 @@ extension WheelLayout {
         if kinds.contains(.image) || kinds.contains(.raw) {
             return WheelLayout(slots: (canMerge ? [merge] : []) + [
                 WheelItem(id: "crop", title: L("편집", "Edit"), symbol: "crop", subtitle: L("자르기·회전·보정", "Crop · rotate · adjust"), edit: .image),
+                developItem(),
                 group("rotate", L("회전", "Rotate"), "rotate.right", [DefaultFileSkills.rotateRight, DefaultFileSkills.rotateLeft, DefaultFileSkills.rotateHalf]),
                 group("flip", L("반전", "Flip"), "arrow.left.and.right.righttriangle.left.righttriangle.right", [DefaultFileSkills.flipHorizontal, DefaultFileSkills.flipVertical]),
                 group("shrink", L("용량 줄이기", "Shrink"), "arrow.down.right.and.arrow.up.left", [DefaultFileSkills.shrinkGentle, DefaultFileSkills.shrink2MB, DefaultFileSkills.shrink500KB]),
@@ -34,6 +48,7 @@ extension WheelLayout {
             return WheelLayout(slots: [
                 WheelItem(id: "pedit", title: L("편집", "Edit"), symbol: "doc.on.doc", subtitle: L("쪽 순서·돌리기·빼기·추가", "Reorder · rotate · remove · add pages"), edit: .pdf),
                 WheelItem(skill: DefaultFileSkills.pdfAddText),
+                pdfAddonItem,
                 whatIsItem(ai),
             ], mode: .tools)
         }

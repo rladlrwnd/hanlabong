@@ -74,6 +74,19 @@ let package = Package(
             path: "Sources/DragEdit",
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
+        // 한라봉 애드온(따로 된 앱). 본체와 엔진·유리 디자인을 같이 쓴다. 셰이더(BorderBeamKit)는 안 써서 swift build만으로 묶인다.
+        .executableTarget(
+            name: "HanlabongDeveloping",
+            dependencies: ["AppCore", "SkillEngine"],
+            path: "Sources/HanlabongDeveloping",
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
+        .executableTarget(
+            name: "HanlabongPDF",
+            dependencies: ["AppCore", "SkillEngine"],
+            path: "Sources/HanlabongPDF",
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
         .testTarget(
             name: "FileFeatureTests",
             dependencies: ["FileFeature", "SkillEngine", "AppCore"],

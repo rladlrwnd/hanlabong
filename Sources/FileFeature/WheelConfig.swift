@@ -421,6 +421,8 @@ package struct PhotoPresetDraft: Equatable {
                 case .longEdge(let n): resizeMode = .longEdge; resizeValue = Double(n)
                 case .shortEdge(let n): resizeMode = .shortEdge; resizeValue = Double(n)
                 case .percent(let p): resizeMode = .percent; resizeValue = p
+                case .fit(let w, _): resizeMode = .longEdge; resizeValue = Double(w)
+                case .megapixels: resizeMode = .none
                 }
             case .metadata(let spec):
                 metadataMode = spec.mode

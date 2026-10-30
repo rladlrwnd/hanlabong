@@ -133,3 +133,29 @@ struct RealEditSmokeTests {
         print("▶︎ 사진 \(result.width)×\(result.height)")
     }
 }
+
+/// 현상 프리셋 세 개를 진짜 사진에 입혀서 나란히(눈 확인용, 선택형)
+///   DRAGEDIT_EDIT_PHOTO=사진 DRAGEDIT_EDIT_OUT=/폴더 swift test --filter RealDevelopSmoke
+struct RealDevelopSmokeTests {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["DRAGEDIT_EDIT_OUT"] != nil && ProcessInfo.processInfo.environment["DRAGEDIT_EDIT_PHOTO"] != nil))
+    func presetsOnRealPhoto() throws {
+        let env = ProcessInfo.processInfo.environment
+        let out = URL(fileURLWithPath: env["DRAGEDIT_EDIT_OUT"]!), photo = URL(fileURLWithPath: env["DRAGEDIT_EDIT_PHOTO"]!)
+        for (i, preset) in DevelopPreset.defaults.enumerated() {
+            let skill = FileSkill(id: preset.id, name: preset.name, input: [.image, .raw],
+                                  steps: [.decode, .develop(preset.settings), .resize(.longEdge(900)), .encode(EncodeSpec(format: .jpg, quality: 0.9))], output: FileOutput(suffix: "_dev"))
+            let result = try FileSkillExecutor().run(skill, input: photo)
+            try result.data.write(to: out.appendingPathComponent("dev\(i + 1).jpg"))
+        }
+        // 커브(S자) + 색조 편집(파랑 채도↓, 빨강·주황 → 주황 쪽, 초록 밝게)
+        var graded = DevelopSettings()
+        graded.curve.rgb = [CurvePoint(0, 0), CurvePoint(0.25, 0.18), CurvePoint(0.75, 0.82), CurvePoint(1, 1)]
+        graded.mixer.saturation[ColorMixer.Band.blue.rawValue] = -70
+        graded.mixer.hue[ColorMixer.Band.red.rawValue] = 60
+        graded.mixer.luminance[ColorMixer.Band.green.rawValue] = 50
+        let gradedSkill = FileSkill(id: "g", name: "g", input: [.image, .raw], steps: [.decode, .develop(graded), .resize(.longEdge(900)), .encode(EncodeSpec(format: .jpg, quality: 0.9))], output: FileOutput(suffix: "_g"))
+        try FileSkillExecutor().run(gradedSkill, input: photo).data.write(to: out.appendingPathComponent("dev4.jpg"))
+        let original = FileSkill(id: "o", name: "o", input: [.image, .raw], steps: [.decode, .resize(.longEdge(900)), .encode(EncodeSpec(format: .jpg, quality: 0.9))], output: FileOutput(suffix: "_o"))
+        try FileSkillExecutor().run(original, input: photo).data.write(to: out.appendingPathComponent("dev0.jpg"))
+    }
+}

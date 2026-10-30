@@ -115,6 +115,19 @@ public enum ResizeSpec: Equatable, Sendable {
     case longEdge(Int)
     case shortEdge(Int)
     case percent(Double)
+    /// 가로·세로 상자 안에 들어가게(비율 유지)
+    case fit(width: Int, height: Int)
+    /// 화소 수(백만 화소)
+    case megapixels(Double)
+}
+
+/// 내보낼 때 선명하게(라이트룸 "출력 선명하게"): 어디에 쓸지 + 얼마나
+public struct OutputSharpening: Equatable, Sendable {
+    public enum Medium: String, Codable, CaseIterable, Sendable { case screen, matte, glossy }
+    public enum Amount: String, Codable, CaseIterable, Sendable { case low, standard, high }
+    public var medium: Medium
+    public var amount: Amount
+    public init(medium: Medium = .screen, amount: Amount = .standard) { self.medium = medium; self.amount = amount }
 }
 
 /// 자르기. `rect`가 있으면 그 영역(0~1 비율, 왼쪽 위가 원점), 없으면 `aspect`("3:2")로 가운데를 자른다.
@@ -171,7 +184,11 @@ public struct EncodeSpec: Equatable, Sendable {
     /// 원본과 같은 형식으로 저장(회전·반전처럼 형식을 바꿀 일이 없는 도구). `format`은 원본 형식을 못 쓸 때(RAW 등) 대신 쓴다.
     public var sameAsInput: Bool
 
-    public init(format: OutputFormat, quality: Double? = nil, maxBytes: Int? = nil, sameAsInput: Bool = false) {
+    /// 해상도(ppi) 표시. 픽셀은 그대로고 인쇄할 때 크기 정보만 바뀐다
+    public var dpi: Int?
+
+    public init(format: OutputFormat, quality: Double? = nil, maxBytes: Int? = nil, sameAsInput: Bool = false, dpi: Int? = nil) {
+        self.dpi = dpi
         self.format = format
         self.quality = quality
         self.maxBytes = maxBytes
@@ -218,6 +235,10 @@ public enum FileStep: Equatable, Sendable {
     case flip(horizontal: Bool, vertical: Bool)
     /// 수평 맞추기: 조금(-45~45도) 돌리고, 돌리며 생긴 빈 모서리가 안 보이게 같은 비율로 안쪽만 남긴다
     case straighten(degrees: Double)
+    /// 출력 선명하게(크기를 정한 뒤에 건다)
+    case sharpen(OutputSharpening)
+    /// 사진 현상(노출·화이트밸런스·톤·색·효과). Hanlabong Developing과 휠의 현상 프리셋
+    case develop(DevelopSettings)
     /// 밝기(-1~1, 0=그대로)·대비(0.25~4, 1=그대로)·채도(0~2, 1=그대로)
     case adjust(brightness: Double, contrast: Double, saturation: Double)
     /// 영상 변환·자르기·소리 끄기·소리만 뽑기
@@ -387,7 +408,11 @@ extension FileStep {
             case .longEdge(let n): return L("긴 변 \(n)px", "Long edge \(n)px")
             case .shortEdge(let n): return L("짧은 변 \(n)px", "Short edge \(n)px")
             case .percent(let p): return L("\(Int(p))%로", "To \(Int(p))%")
+            case .fit(let w, let h): return L("\(w)×\(h) 안에", "Fit \(w)×\(h)")
+            case .megapixels(let mp): return L("\(String(format: "%.1f", mp))MP", "\(String(format: "%.1f", mp)) MP")
             }
+        case .sharpen:
+            return L("출력 선명하게", "Output sharpening")
         case .crop(let spec):
             return spec.aspect.map { L("\($0)로 자르기", "Crop to \($0)") } ?? L("자르기", "Crop")
         case .metadata(let spec):
@@ -407,6 +432,8 @@ extension FileStep {
             return L("\(degrees)° 회전", "Rotate \(degrees)°")
         case .flip(let horizontal, let vertical):
             return [horizontal ? L("좌우 반전", "Flip horizontal") : nil, vertical ? L("상하 반전", "Flip vertical") : nil].compactMap { $0 }.joined(separator: "·")
+        case .develop:
+            return L("현상", "Develop")
         case .straighten(let degrees):
             return L("수평 \(String(format: "%+.1f", degrees))°", "Straighten \(String(format: "%+.1f", degrees))°")
         case .pdfPages(let edit):

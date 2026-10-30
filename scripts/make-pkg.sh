@@ -14,6 +14,11 @@ IDENTIFIER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' Resources/I
 WORK="build/pkg"
 rm -rf "$WORK" && mkdir -p "$WORK/root/Applications" "$WORK/resources"
 cp -R build/Hanlabong.app "$WORK/root/Applications/"
+# 애드온은 따로 된 구성요소 pkg로: 설치 마법사의 "사용자화"에서 체크해서 고른다
+for addon in "Hanlabong Developing" "Hanlabong PDF"; do
+  mkdir -p "$WORK/addon-$addon/Applications"
+  cp -R "build/$addon.app" "$WORK/addon-$addon/Applications/"
+done
 cp Installer/welcome.html Installer/conclusion.html "$WORK/resources/"
 cp LICENSE "$WORK/resources/LICENSE.txt"
 
@@ -38,6 +43,13 @@ SH
 chmod +x "$WORK/scripts/postinstall"
 pkgbuild --root "$WORK/root" --component-plist "$WORK/components.plist" --scripts "$WORK/scripts" \
   --identifier "$IDENTIFIER.pkg" --version "$VERSION" --install-location / "$WORK/Hanlabong-component.pkg"
+for pair in "Hanlabong Developing:app.dragedit.Developing:Developing" "Hanlabong PDF:app.dragedit.PDF:PDF"; do
+  IFS=: read -r name id short <<< "$pair"
+  pkgbuild --analyze --root "$WORK/addon-$name" "$WORK/addon-$short.plist" >/dev/null
+  /usr/libexec/PlistBuddy -c "Set :0:BundleIsRelocatable false" "$WORK/addon-$short.plist"
+  pkgbuild --root "$WORK/addon-$name" --component-plist "$WORK/addon-$short.plist" \
+    --identifier "$id.pkg" --version "$VERSION" --install-location / "$WORK/$short-component.pkg"
+done
 
 # 설치 마법사 화면: 환영 → 라이선스 → 설치 → 완료
 cat > "$WORK/distribution.xml" <<XML
@@ -47,13 +59,26 @@ cat > "$WORK/distribution.xml" <<XML
   <welcome file="welcome.html" mime-type="text/html"/>
   <license file="LICENSE.txt"/>
   <conclusion file="conclusion.html" mime-type="text/html"/>
-  <options customize="never" require-scripts="false" hostArchitectures="arm64"/>
+  <options customize="allow" require-scripts="false" hostArchitectures="arm64"/>
   <domains enable_localSystem="true"/>
   <volume-check><allowed-os-versions><os-version min="26.0"/></allowed-os-versions></volume-check>
-  <choices-outline><line choice="default"><line choice="app"/></line></choices-outline>
-  <choice id="default"/>
-  <choice id="app" visible="false"><pkg-ref id="$IDENTIFIER.pkg"/></choice>
+  <choices-outline>
+    <line choice="app"/>
+    <line choice="developing"/>
+    <line choice="pdf"/>
+  </choices-outline>
+  <choice id="app" title="한라봉 · Hanlabong" description="파일 휠과 글자 팝업 (꼭 필요) · The file wheel and text popup (required)" start_selected="true" start_enabled="false">
+    <pkg-ref id="$IDENTIFIER.pkg"/>
+  </choice>
+  <choice id="developing" title="Hanlabong Developing" description="애드온 · 라이트룸처럼 사진 현상 · Add-on: develop photos like Lightroom" start_selected="true">
+    <pkg-ref id="app.dragedit.Developing.pkg"/>
+  </choice>
+  <choice id="pdf" title="Hanlabong PDF" description="애드온 · PDF 보기·주석·나누기·암호 · Add-on: view, annotate, split, protect PDFs" start_selected="true">
+    <pkg-ref id="app.dragedit.PDF.pkg"/>
+  </choice>
   <pkg-ref id="$IDENTIFIER.pkg" version="$VERSION" onConclusion="none">Hanlabong-component.pkg</pkg-ref>
+  <pkg-ref id="app.dragedit.Developing.pkg" version="$VERSION" onConclusion="none">Developing-component.pkg</pkg-ref>
+  <pkg-ref id="app.dragedit.PDF.pkg" version="$VERSION" onConclusion="none">PDF-component.pkg</pkg-ref>
 </installer-gui-script>
 XML
 

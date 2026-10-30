@@ -1,4 +1,3 @@
-import AppCore
 import AppKit
 import PDFKit
 import SkillEngine
@@ -8,7 +7,7 @@ import UniformTypeIdentifiers
 // MARK: - PDF 쪽 편집 (미리보기 앱의 쪽 다루기 정도: 순서·돌리기·지우기·끼워 넣기·골라서 저장)
 
 @MainActor
-final class PDFEditorModel: ObservableObject {
+package final class PDFEditorModel: ObservableObject {
     let url: URL
     @Published var draft: PDFPageDraft
     @Published var selection: Set<UUID> = []
@@ -22,7 +21,7 @@ final class PDFEditorModel: ObservableObject {
     /// 처음부터 여러 파일을 합치려고 연 창인지(제목·저장 이름이 달라진다)
     let merging: Bool
 
-    init(url: URL, document: PDFDocument, merging others: [URL] = []) {
+    package init(url: URL, document: PDFDocument, merging others: [URL] = []) {
         self.url = url
         documents = [document]
         draft = PDFPageDraft(pageCount: document.pageCount)
@@ -113,13 +112,17 @@ final class PDFEditorModel: ObservableObject {
     }
 }
 
-struct PDFEditorView: View {
-    static let cardSize = CGSize(width: 980, height: 740)
-    static let margin: CGFloat = 30
+package struct PDFEditorView: View {
+    package static let cardSize = CGSize(width: 980, height: 740)
+    package static let margin: CGFloat = 30
 
     @ObservedObject var model: PDFEditorModel
     let save: (FileSkill) -> Void
     let close: () -> Void
+
+    package init(model: PDFEditorModel, save: @escaping (FileSkill) -> Void, close: @escaping () -> Void) {
+        self.model = model; self.save = save; self.close = close
+    }
     @State private var dropTarget: (id: UUID, after: Bool)?
     /// 직접 끄는 중인 쪽과 손가락 위치(그리드 좌표). 시스템 끌어 놓기 대신 쓴다:
     /// 이 창은 바탕을 잡으면 창이 움직이게 돼 있어서 시스템 끌기가 안 먹혔다(사진 자르기처럼 직접 끄는 건 잘 된다).
@@ -131,7 +134,7 @@ struct PDFEditorView: View {
     private static let grid = "pages"
     @AppStorage(AppAccent.key) private var accentHex = AppAccent.defaultHex
 
-    var body: some View {
+    package var body: some View {
         let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
         VStack(alignment: .leading, spacing: 12) {
             HStack {

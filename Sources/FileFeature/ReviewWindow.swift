@@ -60,15 +60,6 @@ final class ReviewModel: ObservableObject {
 
 /// 검토 창: 테두리 없는 유리 패널(휠·팝업과 같은 질감). 키보드(⏎ 적용, esc 닫기)를 받고, 배경을 끌어서 옮길 수 있다.
 /// 비활성 패널이라 지금 쓰던 앱은 그대로 맨 앞에 남는다.
-/// 창의 빈 배경. 여기를 끌면 창이 움직이고, 그 위의 버튼·슬라이더는 자기 동작만 한다.
-struct WindowDragArea: NSViewRepresentable {
-    final class DragView: NSView {
-        override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
-        override var mouseDownCanMoveWindow: Bool { false }
-    }
-    func makeNSView(context: Context) -> NSView { DragView() }
-    func updateNSView(_ view: NSView, context: Context) {}
-}
 
 /// 창이 떠 있는지(등장·퇴장 모션용). 모든 유리 창이 같은 모션을 쓴다.
 @MainActor

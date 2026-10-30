@@ -63,3 +63,25 @@ og = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="12
       '<text x="604" y="420" font-family="Apple SD Gothic Neo" font-size="30" fill="#7a6f66">맥에서 파일을 끌다가 키 하나로 바꾸는 앱</text>'
       '</svg>\n')
 write("hanlabong-og.svg", og)
+
+# 애드온 아이콘: 같은 한라봉 단면에 작은 표시를 붙여 한 가족으로
+#   Developing: 어두운 바탕(사진 보는 방) + 조리개
+#   PDF: 크림 바탕 + 문서
+DARK = '<linearGradient id="dark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a332d"/><stop offset="1" stop-color="#15120f"/></linearGradient>'
+def badge_icon(background, badge):
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="1024" height="1024">{DEFS.replace("</defs>", DARK + "</defs>")}'
+            f'<rect width="200" height="200" fill="{background}"/>'
+            '<g transform="translate(88 88) scale(0.9) translate(-100 -100)">' + FRUIT + '</g>' + badge + '</svg>\n')
+
+def aperture(cx, cy, r):
+    blades = "".join(
+        f'<line x1="{cx + r * 0.95 * math.cos(math.radians(a)):.1f}" y1="{cy + r * 0.95 * math.sin(math.radians(a)):.1f}" '
+        f'x2="{cx + r * 0.35 * math.cos(math.radians(a + 70)):.1f}" y2="{cy + r * 0.35 * math.sin(math.radians(a + 70)):.1f}" '
+        'stroke="#ffb347" stroke-width="5" stroke-linecap="round"/>' for a in range(0, 360, 60))
+    return f'<circle cx="{cx}" cy="{cy}" r="{r + 6}" fill="#1c1916"/><circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#ffb347" stroke-width="6"/>' + blades
+
+DOC = ('<g transform="translate(132 120)"><rect x="0" y="0" width="54" height="66" rx="9" fill="#fff" stroke="#e85d00" stroke-width="6"/>'
+       '<g stroke="#e85d00" stroke-width="5" stroke-linecap="round"><line x1="13" y1="20" x2="41" y2="20"/><line x1="13" y1="34" x2="41" y2="34"/><line x1="13" y1="48" x2="31" y2="48"/></g></g>')
+
+write("developing-appicon.svg", badge_icon("url(#dark)", aperture(156, 156, 28)))
+write("pdf-appicon.svg", badge_icon("url(#bg)", DOC))

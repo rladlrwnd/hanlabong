@@ -261,8 +261,8 @@ struct EverythingElseWheelTests {
 struct WheelModeTests {
     @Test func toolsAndActionsWheelsMatchTheFile() {
         let photo = WheelLayout.layout(mode: .tools, extensions: ["jpg"], containsFolders: false, ai: nil)
-        #expect(photo.mode == .tools && photo.slots.compactMap { $0?.id } == ["crop", "rotate", "flip", "shrink"])
-        #expect(photo.slots[1]?.children.compactMap(\.skill) == [DefaultFileSkills.rotateRight, DefaultFileSkills.rotateLeft, DefaultFileSkills.rotateHalf])
+        #expect(photo.mode == .tools && photo.slots.compactMap { $0?.id } == ["crop", "develop", "rotate", "flip", "shrink"])
+        #expect(photo.slots[2]?.children.compactMap(\.skill) == [DefaultFileSkills.rotateRight, DefaultFileSkills.rotateLeft, DefaultFileSkills.rotateHalf])
         let video = WheelLayout.layout(mode: .tools, extensions: ["mp4"], containsFolders: false, ai: nil)
         #expect(video.slots[1]?.skill == DefaultFileSkills.videoMute)
         let actions = WheelLayout.layout(mode: .actions, extensions: ["jpg"], containsFolders: false, ai: nil)
