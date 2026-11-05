@@ -77,6 +77,10 @@ public final class FileSkillExecutor: @unchecked Sendable {
         case .imageToPDF?:
             return FileResult(data: try SearchablePDF.fromImage(input, ocr: false), fileExtension: "pdf", width: 0, height: 0)
         case .document(let format)?:
+            // 워드·RTF → PDF는 모양(용지·여백·단·글꼴·간격)을 그대로 살려서. 못 읽으면 아래 예전 방식으로
+            if format == .pdf, kind == .document, let data = LayoutPDF.make(from: input) {
+                return FileResult(data: data, fileExtension: "pdf", width: 0, height: 0)
+            }
             let source: RichDocument
             if kind == .pdf {
                 let extracted = try readPDF(input, cancellation: cancellation)

@@ -4,7 +4,7 @@ import Foundation
 
 /// AI를 쓰는 기능들. 기본 에이전트 하나 + 기능별로 바꾸고 싶은 것만 따로 지정한다.
 package enum AIFeature: String, CaseIterable, Identifiable, Sendable {
-    case popup, skillAuthoring, ocrTypoFix, whatIs
+    case popup, skillAuthoring, ocrTypoFix, whatIs, bookParts, pdfAssistant
 
     package var id: String { rawValue }
 
@@ -14,6 +14,8 @@ package enum AIFeature: String, CaseIterable, Identifiable, Sendable {
         case .skillAuthoring: return L("스킬 만들기", "Create skill")
         case .ocrTypoFix: return L("OCR 오타수정 (파일)", "OCR typo fix (files)")
         case .whatIs: return L("What is it? (요약·심층 분석)", "What is it? (summary · deep dive)")
+        case .bookParts: return L("책 파트 나누기 (Hanlabong PDF)", "Split books into parts (Hanlabong PDF)")
+        case .pdfAssistant: return L("PDF 도우미 · 빈칸 채우기 (Hanlabong PDF)", "PDF assistant · form filling (Hanlabong PDF)")
         }
     }
 
@@ -23,6 +25,8 @@ package enum AIFeature: String, CaseIterable, Identifiable, Sendable {
         case .skillAuthoring: return "wand.and.stars"
         case .ocrTypoFix: return "text.viewfinder"
         case .whatIs: return "questionmark.bubble"
+        case .bookParts: return "books.vertical"
+        case .pdfAssistant: return "text.badge.checkmark"
         }
     }
 }

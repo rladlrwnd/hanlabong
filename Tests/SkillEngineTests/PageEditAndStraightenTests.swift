@@ -159,3 +159,16 @@ struct RealDevelopSmokeTests {
         try FileSkillExecutor().run(original, input: photo).data.write(to: out.appendingPathComponent("dev0.jpg"))
     }
 }
+
+/// 워드 → PDF 모양 확인(선택형): DRAGEDIT_WORD=파일.docx DRAGEDIT_EDIT_OUT=/폴더
+struct RealWordLayoutSmokeTests {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["DRAGEDIT_WORD"] != nil && ProcessInfo.processInfo.environment["DRAGEDIT_EDIT_OUT"] != nil))
+    func wordToPDFKeepsLayout() throws {
+        let env = ProcessInfo.processInfo.environment
+        let url = URL(fileURLWithPath: env["DRAGEDIT_WORD"]!)
+        let result = try FileSkillExecutor().run(DefaultFileSkills.toDocument(.pdf), input: url)
+        try result.data.write(to: URL(fileURLWithPath: env["DRAGEDIT_EDIT_OUT"]!).appendingPathComponent("word.pdf"))
+        let doc = PDFDocument(data: result.data)!
+        print("▶︎ 쪽 \(doc.pageCount), 크기 \(doc.page(at: 0)!.bounds(for: .mediaBox).size)")
+    }
+}

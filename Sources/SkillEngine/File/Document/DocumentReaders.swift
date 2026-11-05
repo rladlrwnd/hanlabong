@@ -129,6 +129,11 @@ public enum DocumentReaders {
         return pieces.isEmpty ? nil : pieces.joined(separator: "\n\n")
     }
 
+    /// zip(.docx 등) 안의 파일 하나를 글로(압축 폭탄 막기는 unzip과 같다)
+    static func zipEntry(_ url: URL, path: String) -> String? {
+        unzip(["-p", url.path, path])
+    }
+
     private static func unzip(_ arguments: [String]) -> String? {
         BoundedProcess.unzip(arguments)      // 압축 폭탄 방지: 64MB 넘게 풀리면 멈춘다
     }

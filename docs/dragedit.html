@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DragEdit · 글자와 AI</title>
+<meta name="description" content="어느 앱에서든 글자를 고르고 ⌥ Space. 문서 요약 What is it?, OCR 오타 고치기.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="DragEdit · 글자와 AI">
+<meta property="og:description" content="어느 앱에서든 글자를 고르고 ⌥ Space. 문서 요약 What is it?, OCR 오타 고치기.">
+<meta property="og:image" content="https://rladlrwnd.github.io/hanlabong/og.png">
+<meta property="og:url" content="https://rladlrwnd.github.io/hanlabong/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="#f26a00"/><circle cx="16" cy="16" r="13.6" fill="#fff3e2"/><path d="M15.88 12.19 L12.95 5.12 A11.30 11.30 0 0 1 19.05 5.12 L16.12 12.19 A3.81 3.81 0 0 0 15.88 12.19Z" fill="#ffe0a0" stroke="#ffe0a0" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.61 13.23 L21.54 6.15 A11.30 11.30 0 0 1 25.85 10.46 L18.77 13.39 A3.81 3.81 0 0 0 18.61 13.23Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M19.81 15.88 L26.88 12.95 A11.30 11.30 0 0 1 26.88 19.05 L19.81 16.12 A3.81 3.81 0 0 0 19.81 15.88Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.77 18.61 L25.85 21.54 A11.30 11.30 0 0 1 21.54 25.85 L18.61 18.77 A3.81 3.81 0 0 0 18.77 18.61Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.12 19.81 L19.05 26.88 A11.30 11.30 0 0 1 12.95 26.88 L15.88 19.81 A3.81 3.81 0 0 0 16.12 19.81Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.39 18.77 L10.46 25.85 A11.30 11.30 0 0 1 6.15 21.54 L13.23 18.61 A3.81 3.81 0 0 0 13.39 18.77Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.19 16.12 L5.12 19.05 A11.30 11.30 0 0 1 5.12 12.95 L12.19 15.88 A3.81 3.81 0 0 0 12.19 16.12Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.23 13.39 L6.15 10.46 A11.30 11.30 0 0 1 10.46 6.15 L13.39 13.23 A3.81 3.81 0 0 0 13.23 13.39Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      <span data-ko>한라봉</span><span data-en>Hanlabong</span>
+    </a>
+    <div class="links"><a href="hanlabong.html"><span data-ko>한라봉 · 휠</span><span data-en>Hanlabong · Wheels</span></a><a href="dragedit.html" class="on"><span data-ko>DragEdit · 글자</span><span data-en>DragEdit · Text</span></a><a href="pdf.html"><span data-ko>PDF 한라봉</span><span data-en>Hanlabong PDF</span></a><a href="addons.html"><span data-ko>애드온</span><span data-en>Add-ons</span></a></div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="ko">한국어</button><button type="button" data-lang="en">EN</button>
+    </div>
+    <a class="soon" href="https://github.com/rladlrwnd/hanlabong/releases/latest"><span data-ko>다운로드</span><span data-en>Download</span></a>
+  </div>
+</nav>
+
+<header class="subhero">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html"><span data-ko>한라봉</span><span data-en>Hanlabong</span></a> › <span data-ko>DragEdit</span><span data-en>DragEdit</span></div>
+    <h1><span data-ko>고른 글자,<br>그 자리에서.</span><span data-en>Fix text<br>right where it is.</span></h1>
+    <p class="lead" style="margin:0;max-width:720px"><span data-ko>DragEdit은 한라봉의 글자 손질이에요. 어느 앱에서든 글자를 고르고 ⌥ Space. 줄바꿈 정리 같은 건 규칙으로 바로, "존댓말로 바꿔줘" 같은 건 내 맥의 AI가 해요.</span><span data-en>DragEdit is Hanlabong's text side. Select text in any app and press ⌥ Space. Rules handle the simple stuff instantly; plain-language requests go to the AI on your Mac.</span></p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="textdemo" style="margin-top:44px">
+      <div class="tdwin" aria-hidden="true">
+        <div class="tdbar"><i></i><i></i><i></i><span data-ko>메모</span><span data-en>Notes</span></div>
+        <div class="tddoc" id="tdDoc"></div>
+        <div class="tdkey" id="tdKey"><kbd>⌥</kbd><kbd>Space</kbd></div>
+        <div class="tdpop" id="tdPop">
+          <div class="tdtop"><span class="tdagent" id="tdAgent"></span><span class="tdin" id="tdIn"></span></div>
+          <div class="tdprev" id="tdPrev"></div>
+          <div class="tdlist" id="tdList"></div>
+          <div class="tdout" id="tdOut"></div>
+        </div>
+        <div class="tdsteps" id="tdSteps"></div>
+      </div>
+  </div>
+  <section>
+    <div class="eyebrow"><span data-ko>글자와 문서</span><span data-en>Text and documents</span></div>
+    <h2><span data-ko>내 맥 안의 AI가 같이 일해요.</span><span data-en>A local AI works with you.</span></h2>
+    <div class="why">
+      <div class="wcard big">
+        <div class="no">01</div>
+        <h3 data-ko>내 맥 안의 AI가 같이 일해요</h3><h3 data-en>A local AI works with you</h3>
+        <ul data-ko>
+          <li><strong>What is it?</strong> 문서를 놓으면 요약이 바로 써져요. Tab을 누르면 심층 분석. 계약서의 함정 조항도 잡아요.</li>
+          <li><strong>OCR 오타수정</strong> 불확실한 단어만 AI에게 보내요. 고친 곳은 검토 창에서 하나씩 보고 적용해요.</li>
+          <li><strong>⌥ Space 글자 팝업</strong> 어느 앱의 글자든 그 자리에서 고쳐요. 규칙으로 되는 일은 AI 없이 바로 끝나요.</li>
+          <li><strong>Ollama · LM Studio</strong> 계약서도 회의록도 내 컴퓨터 밖으로 나가지 않아요. 클라우드는 직접 켰을 때만.</li>
+        </ul>
+        <ul data-en>
+          <li><strong>What is it?</strong> Drop a document and a summary writes itself. Tab for a deep dive. It even spots risky contract clauses.</li>
+          <li><strong>OCR typo fix</strong> Only uncertain words go to the AI. Review each fix before it's applied.</li>
+          <li><strong>⌥ Space text popup</strong> Fix text in place, in any app. Rule-based jobs finish instantly without AI.</li>
+          <li><strong>Ollama · LM Studio</strong> Contracts and notes never leave your Mac. Cloud only if you turn it on.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  <section id="ai">
+    <div class="eyebrow">AI</div>
+    <h2><span data-ko>필요할 때만. 내 맥에서 먼저.</span><span data-en>Only when needed. Local first.</span></h2>
+    <p class="sub"><span data-ko>규칙으로 되는 일은 AI를 부르지 않아요. 애매한 것만 내 컴퓨터의 AI(Ollama·LM Studio)가 처리하고 클라우드는 직접 켰을 때만 써요. 밖으로 나갈 땐 휠에 미리 표시돼요.</span>
+      <span data-en>Rules handle what rules can. Only the fuzzy parts go to an AI on your Mac (Ollama, LM Studio). Cloud is opt-in, and the wheel tells you before anything leaves.</span></p>
+    <div class="cards three" style="margin-top:34px">
+      <div class="card"><h3>What is it?</h3>
+        <p data-ko>문서를 놓으면 요약이 바로 써져요. Tab을 누르면 심층 분석. 긴 글은 나눠서 읽어요.</p>
+        <p data-en>Drop a document and the summary writes itself. Tab for a deep dive. Long text is read in parts.</p></div>
+      <div class="card"><h3 data-ko>OCR 오타수정</h3><h3 data-en>OCR typo fix</h3>
+        <p data-ko>문서 전체가 아니라 인식이 불확실한 곳만 AI에게. 고친 곳은 검토 창에서 하나씩 확인.</p>
+        <p data-en>Only uncertain words go to the AI, not the whole page. Review every fix before saving.</p></div>
+      <div class="card"><h3 data-ko>글자 팝업 ⌥ Space</h3><h3 data-en>Text popup ⌥ Space</h3>
+        <p data-ko>어느 앱에서든 글자를 고르고 ⌥ Space. 줄바꿈 정리부터 말로 하는 요청까지 그 자리에서.</p>
+        <p data-en>Select text in any app and press ⌥ Space. From fixing line breaks to plain-language requests, in place.</p></div>
+    </div>
+  </section>
+  <section>
+    <div class="eyebrow"><span data-ko>다른 기능</span><span data-en>More</span></div>
+    <div class="nextpages"><a href="hanlabong.html"><span data-ko>한라봉 · 휠</span><span data-en>Hanlabong · Wheels</span></a><a href="pdf.html"><span data-ko>PDF 한라봉</span><span data-en>Hanlabong PDF</span></a><a href="addons.html"><span data-ko>애드온</span><span data-en>Add-ons</span></a><a href="index.html#try"><span data-ko>휠 체험하기</span><span data-en>Try the wheel</span></a></div>
+  </section>
+  <div class="cta" id="get">
+    <h2><span data-ko>일은 줄이고<br>흐름은 그대로.</span><span data-en>Less busywork.<br>Same flow.</span></h2>
+    <ul>
+      <li data-ko>세 가지 휠 · 50가지 넘는 형식 · 동작 6가지</li><li data-en>Three wheels · 50+ formats · 6 actions</li>
+      <li data-ko>사진 프리셋·편집·스캔 다시 짓기</li><li data-en>Photo presets, editing, scan rebuilding</li>
+      <li data-ko>애드온: Hanlabong Developing · Hanlabong PDF</li><li data-en>Add-ons: Hanlabong Developing · Hanlabong PDF</li>
+      <li data-ko>What is it? 요약과 ⌥ Space 글자 팝업</li><li data-en>What is it? summaries and the ⌥ Space text popup</li>
+      <li data-ko>업로드 없이 내 맥에서</li><li data-en>Local, no uploads</li>
+    </ul>
+    <a class="btn" href="https://github.com/rladlrwnd/hanlabong/releases/latest"><span data-ko>다운로드 (.pkg)</span><span data-en>Download (.pkg)</span></a><a class="alt" href="https://github.com/rladlrwnd/hanlabong">GitHub</a>
+    <div class="warn" data-ko>아직 애플 공증 전이라 처음 열 때 경고가 떠요. 시스템 설정 › 개인정보 보호 및 보안에서 "그래도 열기"를 누르면 설치 마법사가 열려요.</div>
+    <div class="warn" data-en>Not notarized yet: on first open, go to System Settings › Privacy &amp; Security › Open Anyway to start the installer.</div>
+    <div class="req" data-ko>macOS 26 이상 · Apple silicon</div><div class="req" data-en>macOS 26 or later · Apple silicon</div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div data-ko>한라봉(예전 이름 DragEdit) · MIT 라이선스. 이름은 Tangerine(귤)에서 따서 제주 한라봉으로. 파일 휠의 생각은 DragShift(MIT)에서 착안했어요. 빛줄기·생각 구슬은 libraries.dev(MIT). 이 페이지의 휠은 흉내 낸 체험판이에요.</div>
+    <div data-en>Hanlabong (formerly DragEdit) · MIT License. Named after Jeju's hallabong citrus, a nod to Tangerine. The file wheel idea was inspired by DragShift (MIT). Border beam and thinking orbs from libraries.dev (MIT). The wheel on this page is a simulation.</div>
+  </div>
+</footer>
+
+<script src="site.js"></script>
+</body>
+</html>

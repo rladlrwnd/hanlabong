@@ -18,6 +18,8 @@ struct Signature: Codable, Identifiable, Equatable {
     var strokes: [[CGPoint]]
     /// 세로/가로 비율
     var aspect: Double
+    /// 점마다 굵기(가로 기준 0~1). 트랙패드로 쓴 서명은 빠르기·누르는 힘에 따라 굵기가 바뀐다. 예전 서명은 없음
+    var widths: [[Double]]? = nil
 }
 
 enum SignatureStore {
@@ -91,9 +93,11 @@ extension PDFSession {
         }
     }
 
-    func remove(_ annotation: PDFAnnotation) {
-        guard let page = annotation.page else { return }
-        change(L("지웠어요", "Deleted")) { _ in page.removeAnnotation(annotation) }
+    func remove(_ annotation: PDFAnnotation) { remove([annotation]) }
+
+    func remove(_ annotations: [PDFAnnotation]) {
+        guard !annotations.isEmpty else { return }
+        change(L("지웠어요", "Deleted")) { _ in for a in annotations { a.page?.removeAnnotation(a) } }
     }
 
     func selectionChanged(_ annotation: PDFAnnotation?) { selectedAnnotation = annotation }
@@ -122,22 +126,7 @@ extension PDFSession {
         let box = CGRect(x: point.x - width / 2, y: point.y - height / 2, width: width, height: height)
         let tint = color == .systemRed ? NSColor.black : color
         change(L("서명을 넣었어요", "Signed")) { _ in
-            let ink = PDFAnnotation(bounds: box, forType: .ink, withProperties: nil)
-            for stroke in signature.strokes where stroke.count > 1 {
-                let path = NSBezierPath()
-                for (i, p) in stroke.enumerated() {
-                    let local = CGPoint(x: p.x * width, y: height - p.y * width)   // 서명 칸은 위가 0, PDF는 아래가 0
-                    if i == 0 { path.move(to: local) } else { path.line(to: local) }
-                }
-                path.lineWidth = 1.8
-                path.lineCapStyle = .round
-                path.lineJoinStyle = .round
-                ink.add(path)
-            }
-            ink.color = tint
-            let border = PDFBorder(); border.lineWidth = 1.8
-            ink.border = border
-            page.addAnnotation(ink)
+            for a in signatureAnnotations(signature, in: box, tint: tint) { page.addAnnotation(a) }
         }
     }
 
@@ -212,11 +201,26 @@ extension PDFSession {
     func zoom(_ step: Int) {
         guard let view else { return }
         switch step {
-        case 1: view.zoomIn(nil)
-        case -1: view.zoomOut(nil)
-        case 0: view.autoScales = true
-        default: view.scaleFactor = 1
+        case 1: fitsPage = false; view.zoomIn(nil)
+        case -1: fitsPage = false; view.zoomOut(nil)
+        case 0: fitsPage = true; fitPage()
+        default: fitsPage = false; view.scaleFactor = 1
         }
+    }
+
+    /// 한 쪽(책처럼 보기면 두 쪽)이 창 안에 통째로 보이게. 간단히 보기는 오른쪽 기둥·아래 요청칸 자리를 비워 둔다
+    func fitPage() {
+        guard let view, let page = view.currentPage ?? document?.page(at: 0) else { return }
+        var size = page.bounds(for: view.displayBox).size
+        if page.rotation % 180 != 0 { size = CGSize(width: size.height, height: size.width) }
+        // 책처럼 두 쪽 보기일 때만 두 쪽 너비(쪽이 하나뿐이면 한 쪽)
+        if bookLayout, (document?.pageCount ?? 1) > 1 { size.width *= 2 }
+        let simple = mode == .simple
+        let room = CGSize(width: view.bounds.width - (simple ? 150 : 40), height: view.bounds.height - (simple ? 110 : 30))
+        guard size.width > 0, size.height > 0, room.width > 50, room.height > 50 else { return }
+        view.autoScales = false
+        view.scaleFactor = min(room.width / size.width, room.height / size.height)
+        view.go(to: page)
     }
 
     func printDocument() {

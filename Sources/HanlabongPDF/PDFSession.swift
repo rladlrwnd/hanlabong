@@ -18,6 +18,10 @@ final class PDFSession: ObservableObject {
     @Published var matchIndex = 0
     /// 화면(PDFView)이 붙으면 채워진다. 지금 보는 쪽·고른 글자를 알아야 해서
     weak var view: MarkupPDFView?
+    /// 새 문서를 열었을 때(창 크기를 쪽 모양에 맞추려고)
+    var onDocumentShown: ((PDFDocument) -> Void)?
+    /// 한 쪽이 통째로 보이게 맞춘 상태(직접 확대·축소하면 풀린다). 창 크기가 바뀌면 다시 맞춘다
+    var fitsPage = true
 
     // 표시 도구
     @Published var tool = MarkupTool.select { didSet { if tool != .select { view?.deselect() } } }
@@ -33,6 +37,46 @@ final class PDFSession: ObservableObject {
     var pendingSignaturePlace: (page: PDFPage, point: CGPoint)?
     /// 고칠 때마다 바뀌어서, 목차·표시 목록이 다시 그려지게
     @Published private(set) var revision = 0
+
+    // 간단히 보기 / 자세히 보기
+    enum Mode: String { case simple, detailed }
+    @Published var mode: Mode = Mode(rawValue: UserDefaults.standard.string(forKey: "pdfMode") ?? "") ?? .simple {
+        didSet { UserDefaults.standard.set(mode.rawValue, forKey: "pdfMode"); if mode == .simple { tool = .select } }
+    }
+    /// 책처럼 두 쪽씩 볼지, 한 장씩 볼지
+    @Published var bookLayout = UserDefaults.standard.bool(forKey: "pdfBookLayout") {
+        didSet { UserDefaults.standard.set(bookLayout, forKey: "pdfBookLayout"); applyLayout() }
+    }
+    /// 두 쪽 볼 때 1쪽을 혼자(표지처럼) 둘지. 문서마다 기억한다(짝이 밀려 보이는 책 고치기)
+    @Published var coverAlone = true { didSet { applyLayout(); saveReaderState() } }
+    /// 지금 보는 쪽(0부터)
+    @Published var currentPage = 0
+    /// AI·책갈피로 나눈 파트
+    @Published var bookIndex: BookIndex?
+    @Published var indexing = false
+    /// 책 나누기 진행 상황(단계·몇 %·시작 시각)
+    @Published var indexProgress: IndexProgress?
+    var indexTask: Task<Void, Never>?
+    /// 내 정보(채우기용, 이 맥에만)
+    @Published var profile: UserProfile = ProfileStore.load()
+    @Published var editingProfile = false
+    /// 아래 AI 요청칸: 지금 하는 일·AI 답
+    @Published var assistantPhase: AssistantPhase = .idle
+    @Published var assistantReply: String?
+    var assistantTask: Task<Void, Never>?
+    /// 요청칸에서 고를 수 있는 AI들과 지금 쓰는 AI
+    @Published var agentChoices: [Agent] = []
+    @Published var currentAgent: Agent?
+    /// 요청칸에서 직접 고른 AI(없으면 자동 = 한라봉 설정을 따른다). PDF 앱에만 기억
+    @Published var assistantAgentID: String? = UserDefaults.standard.string(forKey: "pdfAssistantAgentID") {
+        didSet { UserDefaults.standard.set(assistantAgentID, forKey: "pdfAssistantAgentID") }
+    }
+    /// AI 요청이 실패했을 때 띄울 오류창 내용
+    @Published var aiError: String?
+    /// 파트로 건너뛰기 전에 있던 쪽들(되돌아가기)
+    @Published var history: [Int] = []
+    /// 파트마다 마지막으로 보던 쪽(문제 ↔ 답지를 오갈 때 보던 자리로 돌아가게)
+    var lastPageInPart: [String: Int] = [:]
 
     private var undoStack: [Data] = []
     private var redoStack: [Data] = []
@@ -75,7 +119,8 @@ final class PDFSession: ObservableObject {
         let kind = FileKindDetector.kind(of: url)
         do {
             if kind == .document || kind == .text {
-                let data = try RichDocumentWriter.write(try RichDocumentReader.read(url), as: .pdf)
+                // 워드·RTF는 모양(용지·단·글꼴·줄 간격)을 살려서, 나머지(한글 등)는 글만
+                let data = try LayoutPDF.make(from: url) ?? RichDocumentWriter.write(try RichDocumentReader.read(url), as: .pdf)
                 message = L("“\(url.lastPathComponent)”을(를) PDF로 바꿔서 열었어요", "Converted “\(url.lastPathComponent)” to PDF")
                 return PDFDocument(data: data)
             }
@@ -103,9 +148,18 @@ final class PDFSession: ObservableObject {
         undoStack = []
         redoStack = []
         view?.document = doc
+        currentPage = 0
+        history = []
+        lastPageInPart = [:]
+        loadReaderState()
+        applyLayout()
+        fitsPage = true
+        onDocumentShown?(doc)
+        DispatchQueue.main.async { self.fitPage() }
     }
 
     private func reset() {
+        bookIndex = nil; history = []
         document = nil; url = nil; dirty = false; undoStack = []; redoStack = []; matches = []
     }
 

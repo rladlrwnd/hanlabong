@@ -1,5 +1,6 @@
 import AppCore
 import AppKit
+import PDFKit
 import SkillEngine
 import SwiftUI
 
@@ -41,7 +42,7 @@ final class PDFAppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate()
             return
         }
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1180, height: 860),
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: Self.preferredSize(for: nil)),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
@@ -50,11 +51,28 @@ final class PDFAppDelegate: NSObject, NSApplicationDelegate {
         window.minSize = NSSize(width: 820, height: 560)
         window.contentView = NSHostingView(rootView: PDFWindowView(session: session))
         window.center()
-        window.setFrameAutosaveName("HanlabongPDF")
         window.isReleasedWhenClosed = false
         window.makeKeyAndOrderFront(nil)
         self.window = window
+        // 새 문서를 열 때마다: 미리보기 앱에서 스페이스를 누른 것처럼 화면의 6/10 정도 크기로, 쪽 모양에 맞춰 가운데
+        session.onDocumentShown = { [weak self, weak window] doc in
+            guard let window, let size = self.map({ _ in Self.preferredSize(for: doc) }), !window.styleMask.contains(.fullScreen) else { return }
+            let screen = (window.screen ?? NSScreen.main)?.visibleFrame ?? .zero
+            let frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: size))
+            let origin = CGPoint(x: screen.midX - frame.width / 2, y: screen.midY - frame.height / 2)
+            window.animator().setFrame(NSRect(origin: origin, size: frame.size), display: true)
+        }
         NSApp.activate()
+    }
+
+    /// 창 크기: 화면 높이의 78%를 기준으로 쪽 가로세로 비율에 맞추고, 가로는 화면의 60%를 넘지 않게
+    static func preferredSize(for document: PDFDocument?) -> NSSize {
+        let screen = NSScreen.main?.visibleFrame.size ?? NSSize(width: 1440, height: 900)
+        var page = document?.page(at: 0)?.bounds(for: .cropBox).size ?? NSSize(width: 595, height: 842)
+        if let rotation = document?.page(at: 0)?.rotation, rotation % 180 != 0 { page = NSSize(width: page.height, height: page.width) }
+        let height = screen.height * 0.78
+        let width = min(max((height - 110) * page.width / max(page.height, 1) + 150, 720), screen.width * 0.6)
+        return NSSize(width: width.rounded(), height: height.rounded())
     }
 }
 

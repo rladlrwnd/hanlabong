@@ -83,7 +83,11 @@ let package = Package(
         ),
         .executableTarget(
             name: "HanlabongPDF",
-            dependencies: ["AppCore", "SkillEngine"],
+            dependencies: [
+                "AppCore", "SkillEngine",
+                .product(name: "ThinkingOrbsKit", package: "ThinkingOrbsKit"),
+                .product(name: "BotAvatarsKit", package: "BotAvatarsKit"),
+            ],
             path: "Sources/HanlabongPDF",
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
