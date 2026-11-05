@@ -21,7 +21,7 @@
       <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="#f26a00"/><circle cx="16" cy="16" r="13.6" fill="#fff3e2"/><path d="M15.88 12.19 L12.95 5.12 A11.30 11.30 0 0 1 19.05 5.12 L16.12 12.19 A3.81 3.81 0 0 0 15.88 12.19Z" fill="#ffe0a0" stroke="#ffe0a0" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.61 13.23 L21.54 6.15 A11.30 11.30 0 0 1 25.85 10.46 L18.77 13.39 A3.81 3.81 0 0 0 18.61 13.23Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M19.81 15.88 L26.88 12.95 A11.30 11.30 0 0 1 26.88 19.05 L19.81 16.12 A3.81 3.81 0 0 0 19.81 15.88Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.77 18.61 L25.85 21.54 A11.30 11.30 0 0 1 21.54 25.85 L18.61 18.77 A3.81 3.81 0 0 0 18.77 18.61Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.12 19.81 L19.05 26.88 A11.30 11.30 0 0 1 12.95 26.88 L15.88 19.81 A3.81 3.81 0 0 0 16.12 19.81Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.39 18.77 L10.46 25.85 A11.30 11.30 0 0 1 6.15 21.54 L13.23 18.61 A3.81 3.81 0 0 0 13.39 18.77Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.19 16.12 L5.12 19.05 A11.30 11.30 0 0 1 5.12 12.95 L12.19 15.88 A3.81 3.81 0 0 0 12.19 16.12Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.23 13.39 L6.15 10.46 A11.30 11.30 0 0 1 10.46 6.15 L13.39 13.23 A3.81 3.81 0 0 0 13.23 13.39Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/></svg>
       <span data-ko>한라봉</span><span data-en>Hanlabong</span>
     </a>
-    <div class="links"><a href="hanlabong.html" class="on"><span data-ko>한라봉 · 휠</span><span data-en>Hanlabong · Wheels</span></a><a href="dragedit.html"><span data-ko>DragEdit · 글자</span><span data-en>DragEdit · Text</span></a><a href="pdf.html"><span data-ko>PDF 한라봉</span><span data-en>Hanlabong PDF</span></a><a href="addons.html"><span data-ko>애드온</span><span data-en>Add-ons</span></a></div>
+    <div class="links"><a href="start.html"><span data-ko>시작하기</span><span data-en>Get started</span></a><a href="hanlabong.html" class="on"><span data-ko>한라봉 · 휠</span><span data-en>Hanlabong · Wheels</span></a><a href="dragedit.html"><span data-ko>DragEdit · 글자</span><span data-en>DragEdit · Text</span></a><a href="pdf.html"><span data-ko>한라봉 PDF</span><span data-en>Hanlabong PDF</span></a><a href="addons.html"><span data-ko>애드온</span><span data-en>Add-ons</span></a></div>
     <div class="contact">
       <button type="button" class="contactbtn" aria-expanded="false" aria-controls="contactpop"><span data-ko>문의</span><span data-en>Contact</span></button>
       <div class="contactpop" id="contactpop" role="dialog" aria-label="Contact">
@@ -116,6 +116,37 @@
         <p class="sub" style="margin-top:14px;font-size:14px"><span data-ko>폴더나 여러 종류가 섞인 선택에도 돼요.</span><span data-en>Works with folders and mixed selections.</span></p>
       </div>
       <svg class="mini" id="miniActions" viewBox="0 0 400 400" aria-hidden="true"></svg>
+    </div>
+  </section>
+  <section id="ai-wheel">
+    <div class="eyebrow"><span data-ko>휠에서 바로 AI까지</span><span data-en>AI, right from the wheel</span></div>
+    <h2><span data-ko>놓기만 하면<br>읽고, 고쳐요.</span><span data-en>Drop it.<br>It reads and fixes.</span></h2>
+    <p class="sub"><span data-ko>문서를 ⌘ 도구 휠의 What is it?에 놓으면 요약이, 사진 찍은 글을 ⇧ TXT › AI 오타수정에 놓으면 틀린 글자를 고친 텍스트가 생겨요. AI는 내 맥의 Ollama가 먼저예요.</span><span data-en>Drop a document on What is it? in the ⌘ tools wheel for a summary. Drop a photo of text on ⇧ TXT › AI typo fix for clean text. The AI runs on your Mac first.</span></p>
+    <div class="aidemos">
+      <div class="wddemo first" id="widemo">
+      <div class="democap"><span class="tag">What is it?</span><h3><span data-ko>문서를 놓으면 요약이 짜라락</span><span data-en>Drop a document, get a summary</span></h3><p><span data-ko>긴 PDF·Word·한글·PPT도 나눠서 읽어요. Tab을 누르면 심층 분석: 조심할 조항, 숫자, 할 일까지.</span><span data-en>Long PDFs, Word, Hangul and slides are read in parts. Tab for a deep dive: risky clauses, numbers, to-dos.</span></p></div>
+      <div class="wdwin" aria-hidden="true">
+        <div class="tdbar"><i></i><i></i><i></i><span data-ko>Finder · 다운로드</span><span data-en>Finder · Downloads</span></div>
+        <div class="wdarea"></div>
+        <div class="wheel"><div class="glassbg"></div><svg viewBox="0 0 400 400"></svg></div>
+        <div class="toast"></div>
+        <div class="tdkey"><kbd>⌘</kbd></div>
+        <svg class="wdcursor" viewBox="0 0 24 24" style="left:50%;top:55%"><path d="M5 3l14 8-6.2 1.6L9.5 19z" fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        <div class="tdsteps"></div>
+      </div>
+    </div>
+      <div class="wddemo first" id="ocrdemo">
+      <div class="democap"><span class="tag">OCR</span><h3><span data-ko>찍은 글도 오타 없이</span><span data-en>Photos of text, typo-free</span></h3><p><span data-ko>글자 인식이 불확실한 단어만 AI에게 물어요. 고친 곳은 검토 창에서 하나씩 보고 적용해요.</span><span data-en>Only the uncertain words go to the AI. Review each fix before it is applied.</span></p></div>
+      <div class="wdwin" aria-hidden="true">
+        <div class="tdbar"><i></i><i></i><i></i><span data-ko>Finder · 강의</span><span data-en>Finder · Lectures</span></div>
+        <div class="wdarea"></div>
+        <div class="wheel"><div class="glassbg"></div><svg viewBox="0 0 400 400"></svg></div>
+        <div class="toast"></div>
+        <div class="tdkey"><kbd>⇧</kbd></div>
+        <svg class="wdcursor" viewBox="0 0 24 24" style="left:50%;top:55%"><path d="M5 3l14 8-6.2 1.6L9.5 19z" fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        <div class="tdsteps"></div>
+      </div>
+    </div>
     </div>
   </section>
   <section>
@@ -227,7 +258,7 @@
   </section>
   <section>
     <div class="eyebrow"><span data-ko>다른 기능</span><span data-en>More</span></div>
-    <div class="nextpages"><a href="dragedit.html"><span data-ko>DragEdit · 글자</span><span data-en>DragEdit · Text</span></a><a href="pdf.html"><span data-ko>PDF 한라봉</span><span data-en>Hanlabong PDF</span></a><a href="addons.html"><span data-ko>애드온</span><span data-en>Add-ons</span></a><a href="index.html#try"><span data-ko>휠 체험하기</span><span data-en>Try the wheel</span></a></div>
+    <div class="nextpages"><a href="start.html"><span data-ko>시작하기</span><span data-en>Get started</span></a><a href="dragedit.html"><span data-ko>DragEdit · 글자</span><span data-en>DragEdit · Text</span></a><a href="pdf.html"><span data-ko>한라봉 PDF</span><span data-en>Hanlabong PDF</span></a><a href="addons.html"><span data-ko>애드온</span><span data-en>Add-ons</span></a><a href="index.html#try"><span data-ko>휠 체험하기</span><span data-en>Try the wheel</span></a></div>
   </section>
   <div class="cta" id="get">
     <h2><span data-ko>일은 줄이고<br>흐름은 그대로.</span><span data-en>Less busywork.<br>Same flow.</span></h2>

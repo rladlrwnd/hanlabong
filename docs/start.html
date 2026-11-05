@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>한라봉 시작하기</title>
+<meta name="description" content="한라봉 설치, Ollama·Groq로 AI 준비, 대학생 활용법, 단축키.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="한라봉 시작하기">
+<meta property="og:description" content="한라봉 설치, Ollama·Groq로 AI 준비, 대학생 활용법, 단축키.">
+<meta property="og:image" content="https://rladlrwnd.github.io/hanlabong/og.png">
+<meta property="og:url" content="https://rladlrwnd.github.io/hanlabong/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<nav>
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="#f26a00"/><circle cx="16" cy="16" r="13.6" fill="#fff3e2"/><path d="M15.88 12.19 L12.95 5.12 A11.30 11.30 0 0 1 19.05 5.12 L16.12 12.19 A3.81 3.81 0 0 0 15.88 12.19Z" fill="#ffe0a0" stroke="#ffe0a0" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.61 13.23 L21.54 6.15 A11.30 11.30 0 0 1 25.85 10.46 L18.77 13.39 A3.81 3.81 0 0 0 18.61 13.23Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M19.81 15.88 L26.88 12.95 A11.30 11.30 0 0 1 26.88 19.05 L19.81 16.12 A3.81 3.81 0 0 0 19.81 15.88Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.77 18.61 L25.85 21.54 A11.30 11.30 0 0 1 21.54 25.85 L18.61 18.77 A3.81 3.81 0 0 0 18.77 18.61Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.12 19.81 L19.05 26.88 A11.30 11.30 0 0 1 12.95 26.88 L15.88 19.81 A3.81 3.81 0 0 0 16.12 19.81Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.39 18.77 L10.46 25.85 A11.30 11.30 0 0 1 6.15 21.54 L13.23 18.61 A3.81 3.81 0 0 0 13.39 18.77Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.19 16.12 L5.12 19.05 A11.30 11.30 0 0 1 5.12 12.95 L12.19 15.88 A3.81 3.81 0 0 0 12.19 16.12Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.23 13.39 L6.15 10.46 A11.30 11.30 0 0 1 10.46 6.15 L13.39 13.23 A3.81 3.81 0 0 0 13.23 13.39Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      <span data-ko>한라봉</span><span data-en>Hanlabong</span>
+    </a>
+    <div class="links"><a href="start.html" class="on"><span data-ko>시작하기</span><span data-en>Get started</span></a><a href="hanlabong.html"><span data-ko>한라봉 · 휠</span><span data-en>Hanlabong · Wheels</span></a><a href="dragedit.html"><span data-ko>DragEdit · 글자</span><span data-en>DragEdit · Text</span></a><a href="pdf.html"><span data-ko>한라봉 PDF</span><span data-en>Hanlabong PDF</span></a><a href="addons.html"><span data-ko>애드온</span><span data-en>Add-ons</span></a></div>
+    <div class="contact">
+      <button type="button" class="contactbtn" aria-expanded="false" aria-controls="contactpop"><span data-ko>문의</span><span data-en>Contact</span></button>
+      <div class="contactpop" id="contactpop" role="dialog" aria-label="Contact">
+        <p><span data-ko>궁금한 점, 버그, 바라는 기능 무엇이든 편하게 연락 주세요.</span><span data-en>Questions, bugs or ideas — get in touch anytime.</span></p>
+        <a class="cmail" data-u="danielkim0894" data-d="gmail.com" href="#"><b><span data-ko>메일 보내기</span><span data-en>Email</span></b><span class="addr"></span></a>
+        <a class="cgit" href="https://github.com/rladlrwnd/hanlabong/issues/new" target="_blank" rel="noopener"><b><span data-ko>GitHub에 남기기</span><span data-en>Open a GitHub issue</span></b><span><span data-ko>버그·기능 제안을 공개로 남기고 같이 봐요</span><span data-en>Public bug reports and feature requests</span></span></a>
+      </div>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="ko">한국어</button><button type="button" data-lang="en">EN</button>
+    </div>
+    <a class="soon" href="https://github.com/rladlrwnd/hanlabong/releases/latest"><span data-ko>다운로드</span><span data-en>Download</span></a>
+  </div>
+</nav>
+
+<header class="subhero">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html"><span data-ko>한라봉</span><span data-en>Hanlabong</span></a> › <span data-ko>시작하기</span><span data-en>Get started</span></div>
+    <h1><span data-ko>처음이라면<br>여기부터.</span><span data-en>New here?<br>Start here.</span></h1>
+    <p class="lead" style="margin:0;max-width:720px"><span data-ko>설치하고, AI를 붙이고, 대학생 하루에 바로 써먹는 법까지 한 페이지에 모았어요.</span><span data-en>Install it, connect an AI, and put it to work in a student day — all on one page.</span></p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section style="padding-top:44px" id="install">
+    <div class="eyebrow"><span data-ko>1. 설치</span><span data-en>1. Install</span></div>
+    <h2><span data-ko>3분이면 끝나요.</span><span data-en>Done in three minutes.</span></h2>
+    <ol class="tsteps">
+      <li><span class="n">1</span><div><h3><span data-ko>설치 파일 받기</span><span data-en>Download</span></h3><p><span data-ko><a href="https://github.com/rladlrwnd/hanlabong/releases/latest">GitHub 릴리스</a>에서 <b>Hanlabong-버전.pkg</b>를 받아요. macOS 26 이상, Apple silicon 맥.</span><span data-en>Get <b>Hanlabong-version.pkg</b> from the <a href="https://github.com/rladlrwnd/hanlabong/releases/latest">GitHub release</a>. macOS 26+, Apple silicon.</span></p></div></li>
+      <li><span class="n">2</span><div><h3><span data-ko>처음 열 때 경고 넘기기</span><span data-en>Get past the first warning</span></h3><p><span data-ko>아직 애플 공증 전이라 경고가 떠요. 시스템 설정 › 개인정보 보호 및 보안 맨 아래에서 <b>그래도 열기</b>를 누르면 설치 마법사가 열려요.</span><span data-en>It is not notarized yet. In System Settings › Privacy &amp; Security, scroll down and click <b>Open Anyway</b>.</span></p></div></li>
+      <li><span class="n">3</span><div><h3><span data-ko>애드온 고르기</span><span data-en>Pick add-ons</span></h3><p><span data-ko>설치 마법사의 "사용자화"에서 Hanlabong PDF · Developing을 고를 수 있어요. 나중에 다시 설치해도 돼요.</span><span data-en>Under Customize in the installer, choose Hanlabong PDF and Developing. You can add them later too.</span></p></div></li>
+      <li><span class="n">4</span><div><h3><span data-ko>손쉬운 사용 권한 켜기</span><span data-en>Turn on Accessibility</span></h3><p><span data-ko>처음 켜면 안내 창이 떠요. 다른 앱의 글자를 읽고 바꾼 글자를 다시 넣으려면 맥의 <b>손쉬운 사용</b> 권한이 필요해요. 글자는 내 맥 밖으로 나가지 않아요.</span><span data-en>A guide appears on first launch. Reading and replacing text in other apps needs macOS <b>Accessibility</b> access. Text never leaves your Mac.</span></p></div></li>
+    </ol>
+    <p class="sub" style="margin-top:14px;font-size:15px"><span data-ko>켜지면 메뉴 막대에 한라봉 아이콘이 생겨요. 아이콘 › <b>설정…</b>(⌘ ,)에 <b>에이전트 · API 키 · 일반</b> 탭이 있어요.</span><span data-en>Once running, a Hanlabong icon sits in the menu bar. Icon › <b>Settings…</b> (⌘ ,) has the <b>Agents · API Keys · General</b> tabs.</span></p>
+  </section>
+
+  <section id="ai">
+    <div class="eyebrow"><span data-ko>2. AI 준비</span><span data-en>2. Set up AI</span></div>
+    <h2><span data-ko>둘 중 하나만 하면 돼요.</span><span data-en>Pick one of two.</span></h2>
+    <p class="sub"><span data-ko>파일 바꾸기와 휠은 AI 없이도 다 돼요. 글자 팝업의 "말로 부탁하기", What is it? 요약, PDF 빈칸 채우기·목차 같은 일에 AI가 필요해요.</span><span data-en>Converting and the wheels work without AI. AI powers plain-language requests, What is it? summaries, PDF form filling and contents.</span></p>
+    <div class="feat">
+      <div class="wcard"><div class="no">A · <span data-ko>추천</span><span data-en>Recommended</span></div>
+        <h3><span data-ko>Ollama — 내 맥에서 무료로</span><span data-en>Ollama — free, on your Mac</span></h3>
+        <ol class="mini-steps">
+          <li><span data-ko><a href="https://ollama.com/download">ollama.com/download</a>에서 Ollama를 받아 설치하고 켜요.</span><span data-en>Install and open Ollama from <a href="https://ollama.com/download">ollama.com/download</a>.</span></li>
+          <li><span data-ko>터미널에서 모델을 받아요(아래 표에서 내 맥에 맞는 것):</span><span data-en>Pull a model in Terminal (pick one from the table):</span><code>ollama pull gemma4:12b</code></li>
+          <li><span data-ko>한라봉 설정 › 에이전트에서 받은 모델을 골라요. 끝.</span><span data-en>Choose it in Hanlabong Settings › Agents. Done.</span></li>
+        </ol>
+        <p class="note"><span data-ko>글이 내 맥 밖으로 나가지 않아요. 계약서·신청서처럼 개인정보가 든 문서엔 이쪽을 써요.</span><span data-en>Nothing leaves your Mac. Use this for contracts and forms with personal info.</span></p>
+      </div>
+      <div class="wcard"><div class="no">B · <span data-ko>맥이 가벼울 때</span><span data-en>For lighter Macs</span></div>
+        <h3><span data-ko>Groq — 무료 API 키</span><span data-en>Groq — free API key</span></h3>
+        <ol class="mini-steps">
+          <li><span data-ko><a href="https://console.groq.com">console.groq.com</a>에 가입해요. 카드 등록 없이 돼요.</span><span data-en>Sign up at <a href="https://console.groq.com">console.groq.com</a>. No card needed.</span></li>
+          <li><span data-ko><a href="https://console.groq.com/keys">API Keys</a>에서 <b>Create API Key</b>. <b>gsk_</b>로 시작하는 키는 한 번만 보이니 바로 복사해요.</span><span data-en>In <a href="https://console.groq.com/keys">API Keys</a>, click <b>Create API Key</b>. The key starts with <b>gsk_</b> and is shown once, so copy it now.</span></li>
+          <li><span data-ko>한라봉 설정 › <b>API 키</b>에서 <b>클라우드 AI 사용</b>을 켜고 Groq 칸에 붙여 넣어요. 키는 맥 키체인에 저장돼요.</span><span data-en>In Hanlabong Settings › <b>API Keys</b>, turn on <b>Use cloud AI</b> and paste it into Groq. It is stored in your Keychain.</span></li>
+          <li><span data-ko>에이전트 탭이나 PDF 요청칸의 칩에서 Groq를 골라요.</span><span data-en>Pick Groq in the Agents tab or the chip in the PDF ask box.</span></li>
+        </ol>
+        <p class="note"><span data-ko>무료라도 1분·하루에 쓸 수 있는 양이 정해져 있어요(콘솔의 Limits에서 확인). 글이 Groq 서버로 가요.</span><span data-en>The free tier has per-minute and per-day limits (see Limits in the console). Text goes to Groq’s servers.</span></p>
+      </div>
+    </div>
+    <h3 style="margin:34px 0 12px;font-size:20px"><span data-ko>내 맥에 맞는 Ollama 모델</span><span data-en>Which Ollama model for your Mac</span></h3>
+    <div class="mtable">
+      <div class="mrow head"><span><span data-ko>맥 메모리</span><span data-en>Mac memory</span></span><span><span data-ko>모델</span><span data-en>Model</span></span><span><span data-ko>받는 크기</span><span data-en>Download</span></span><span><span data-ko>이런 느낌</span><span data-en>What to expect</span></span></div>
+      <div class="mrow"><span>8GB</span><span><code>gemma4:e2b</code></span><span>4.6GB</span><span><span data-ko>가볍고 빨라요. 짧은 글 다듬기·요약에.</span><span data-en>Light and quick. Short edits and summaries.</span></span></div>
+      <div class="mrow best"><span>16GB</span><span><code>gemma4:12b</code> <em><span data-ko>추천</span><span data-en>Pick</span></em></span><span>7.7GB</span><span><span data-ko>한국어도 무난. 우리가 써 보니 PDF 요청 5~6초, 56쪽 답지 목차 51초.</span><span data-en>Good Korean. In our tests: PDF requests in 5–6 s, a 56-page answer book in 51 s.</span></span></div>
+      <div class="mrow"><span><span data-ko>32GB 이상</span><span data-en>32GB+</span></span><span><code>gemma4:26b</code> · <code>qwen3.6:27b</code></span><span>16~19GB</span><span><span data-ko>더 똑똑한 대신 느려요. 긴 책·어려운 글에.</span><span data-en>Smarter but slower. Long books and hard text.</span></span></div>
+    </div>
+    <p class="sub" style="margin-top:10px;font-size:13px"><span data-ko>모델 크기는 2026년 11월 <a href="https://ollama.com/library/gemma4/tags">Ollama 라이브러리</a> 기준이에요.</span><span data-en>Sizes as listed in the <a href="https://ollama.com/library/gemma4/tags">Ollama library</a>, November 2026.</span></p>
+  </section>
+
+  <section id="use">
+    <div class="eyebrow"><span data-ko>3. 이렇게 쓰면 좋아요</span><span data-en>3. Ways to use it</span></div>
+    <h2><span data-ko>대학생 하루에 한라봉 넣기.</span><span data-en>A student day, with Hanlabong.</span></h2>
+    <div class="cards three" style="margin-top:30px">
+      <div class="card use"><h3><span data-ko>과제를 PDF로 제출</span><span data-en>Submit as PDF</span></h3><p><span data-ko>과제.docx·한글 파일을 끌다가 ⇧ › PDF. 용지·단·줄 간격 그대로. 원본은 그대로 남아요.</span><span data-en>Drag essay.docx or a Hangul file, ⇧ › PDF. Paper, columns and spacing kept; the original stays.</span></p></div>
+      <div class="card use"><h3><span data-ko>한글 파일 못 열 때</span><span data-en>Can’t open a .hwp</span></h3><p><span data-ko>조교가 보낸 .hwp를 끌다가 ⇧ › PDF나 Word로. 맥에 한글이 없어도 돼요.</span><span data-en>Drag the .hwp from your TA, ⇧ › PDF or Word. No Hangul app needed.</span></p></div>
+      <div class="card use"><h3><span data-ko>장학금·근로 서류 채우기</span><span data-en>Fill scholarship forms</span></h3><p><span data-ko>Hanlabong PDF에서 "내 정보로 채워줘". 서명은 트랙패드로. 내 정보는 한 번만 넣어 두면 돼요.</span><span data-en>In Hanlabong PDF, ask "fill it with my info" and sign on the trackpad. Save your info once.</span></p></div>
+      <div class="card use"><h3><span data-ko>수특·문제집 답 맞추기</span><span data-en>Check answers in study books</span></h3><p><span data-ko>문제 쪽에서 해설 단추 한 번, 되돌아가기로 원래 자리. "9단원 해설로 가줘"도 돼요.</span><span data-en>One click from a problem to its explanation and back. Or ask "go to unit 9 answers".</span></p></div>
+      <div class="card use"><h3><span data-ko>강의 자료 스캔 정리</span><span data-en>Clean up scanned notes</span></h3><p><span data-ko>사진 찍은 필기를 ⇧ › 글자 넣은 PDF. 반듯하게 펴고 검색되게.</span><span data-en>Photographed notes, ⇧ › searchable PDF. Flattened and searchable.</span></p></div>
+      <div class="card use"><h3><span data-ko>조별 과제 회의록</span><span data-en>Group meeting notes</span></h3><p><span data-ko>어디서든 글자를 고르고 ⌥ Space › "문장 다듬어줘", "할 일만 뽑아줘".</span><span data-en>Select text anywhere, ⌥ Space › "tidy this", "list the to-dos".</span></p></div>
+      <div class="card use"><h3><span data-ko>계약서·약관 미리 보기</span><span data-en>Read contracts first</span></h3><p><span data-ko>자취방 계약서를 휠 ⌘ › What is it?. 요약과 조심할 조항을 먼저 짚어 줘요.</span><span data-en>Drop a lease on ⌘ › What is it? for a summary and clauses to watch.</span></p></div>
+      <div class="card use"><h3><span data-ko>포트폴리오 사진</span><span data-en>Portfolio photos</span></h3><p><span data-ko>사진을 ⇧ › JPG › 웹용(2MB 이하·위치 삭제), 클라이언트 샘플은 워터마크까지.</span><span data-en>Photos, ⇧ › JPG › Web (under 2 MB, location removed), or a watermarked sample.</span></p></div>
+      <div class="card use"><h3><span data-ko>발표 자료 용량 줄이기</span><span data-en>Shrink slide decks</span></h3><p><span data-ko>메일에 안 붙는 PDF·영상은 ⌘ › 용량. 크기 그대로 용량만.</span><span data-en>PDFs or videos too big to email, ⌘ › Shrink. Same size, smaller file.</span></p></div>
+    </div>
+  </section>
+
+  <section id="keys">
+    <div class="eyebrow"><span data-ko>4. 단축키 한눈에</span><span data-en>4. Shortcuts</span></div>
+    <h2><span data-ko>이것만 알면 돼요.</span><span data-en>All you need.</span></h2>
+    <div class="keylist"><div><kbd>⇧</kbd><span><span data-ko>파일을 끄는 중에 · 변환 휠</span><span data-en>While dragging · Convert wheel</span></span></div><div><kbd>⌘</kbd><span><span data-ko>파일을 끄는 중에 · 도구 휠(편집·용량·애드온)</span><span data-en>While dragging · Tools wheel (edit, shrink, add-ons)</span></span></div><div><kbd>⌃</kbd><span><span data-ko>파일을 끄는 중에 · 동작 휠(AirDrop·복사·이동)</span><span data-en>While dragging · Actions wheel (AirDrop, copy, move)</span></span></div><div><kbd>⌥ Space</kbd><span><span data-ko>글자를 고르고 · 글자 팝업</span><span data-en>With text selected · Text popup</span></span></div><div><kbd>Tab</kbd><span><span data-ko>글자 팝업에서 · AI 바꾸기 / What is it?에서 · 심층 분석</span><span data-en>In the popup · switch AI / in What is it? · deep dive</span></span></div><div><kbd>⌘ E</kbd><span><span data-ko>PDF · 간단히 보기 ↔ 자세히 보기</span><span data-en>PDF · Simple ↔ detailed view</span></span></div><div><kbd>⌘ [</kbd><span><span data-ko>PDF · 건너뛰기 전 자리로</span><span data-en>PDF · Back to where you were</span></span></div><div><kbd>⌘ + / ⌘ − / ⌘ 9</kbd><span><span data-ko>PDF · 크게 / 작게 / 한 쪽 맞추기</span><span data-en>PDF · Zoom in / out / fit page</span></span></div><div><kbd>⌘ Z</kbd><span><span data-ko>PDF · 되돌리기</span><span data-en>PDF · Undo</span></span></div><div><kbd>Esc</kbd><span><span data-ko>PDF · 도구 끄기 / 트랙패드 서명 지우기</span><span data-en>PDF · Tool off / clear a trackpad signature</span></span></div></div>
+    <p class="sub" style="margin-top:10px;font-size:14px"><span data-ko>휠 키는 설정 › 일반에서 바꿀 수 있어요.</span><span data-en>Wheel keys can be changed in Settings › General.</span></p>
+  </section>
+
+  <section id="help">
+    <div class="eyebrow"><span data-ko>5. 막힐 때</span><span data-en>5. If you get stuck</span></div>
+    <h2><span data-ko>자주 묻는 것.</span><span data-en>Common questions.</span></h2>
+    <div class="faq">
+      <details><summary><span data-ko>"API 키가 만료됐거나 맞지 않아요"라고 떠요</span><span data-en>"The API key expired or is wrong"</span></summary><p><span data-ko>그 서비스의 키가 만료됐어요. 새 키를 받아 설정 › API 키에 다시 넣거나, 설정 › 에이전트에서 Ollama 모델로 바꿔요. PDF 요청칸의 칩에서도 바로 바꿀 수 있어요.</span><span data-en>Get a new key and paste it in Settings › API Keys, or switch to an Ollama model in Settings › Agents or the PDF ask-box chip.</span></p></details>
+      <details><summary><span data-ko>"Ollama가 꺼져 있어요"</span><span data-en>"Ollama isn’t running"</span></summary><p><span data-ko>Ollama 앱을 켜요. 메뉴 막대에 라마 아이콘이 보이면 돼요. 모델을 처음 쓸 땐 메모리에 올리느라 조금 더 걸려요.</span><span data-en>Open the Ollama app (the llama icon in the menu bar). The first request loads the model, so it takes a bit longer.</span></p></details>
+      <details><summary><span data-ko>너무 느려요</span><span data-en>It’s slow</span></summary><p><span data-ko>한 단계 작은 모델(예: gemma4:12b → gemma4:e4b)로 바꿔 봐요. 두꺼운 책 목차는 한 번 만들면 이 맥에 저장돼서 다음부터는 바로 떠요.</span><span data-en>Try a smaller model (e.g. gemma4:12b → gemma4:e4b). A book’s contents are saved after the first time and open instantly later.</span></p></details>
+      <details><summary><span data-ko>글자 팝업이 안 떠요</span><span data-en>The text popup doesn’t open</span></summary><p><span data-ko>시스템 설정 › 개인정보 보호 및 보안 › 손쉬운 사용에서 한라봉이 켜져 있는지 봐요. 설정 › 일반 › 권한에서 바로 열 수 있어요.</span><span data-en>Check System Settings › Privacy &amp; Security › Accessibility for Hanlabong. Settings › General › Permissions opens it.</span></p></details>
+      <details><summary><span data-ko>그래도 안 되면</span><span data-en>Still stuck?</span></summary><p><span data-ko>위쪽 메뉴의 <b>문의</b>로 메일을 보내거나 GitHub에 남겨 줘요.</span><span data-en>Use <b>Contact</b> in the top menu to email or open a GitHub issue.</span></p></details>
+    </div>
+  </section>
+  <section>
+    <div class="eyebrow"><span data-ko>다른 기능</span><span data-en>More</span></div>
+    <div class="nextpages"><a href="hanlabong.html"><span data-ko>한라봉 · 휠</span><span data-en>Hanlabong · Wheels</span></a><a href="dragedit.html"><span data-ko>DragEdit · 글자</span><span data-en>DragEdit · Text</span></a><a href="pdf.html"><span data-ko>한라봉 PDF</span><span data-en>Hanlabong PDF</span></a><a href="addons.html"><span data-ko>애드온</span><span data-en>Add-ons</span></a><a href="index.html#try"><span data-ko>휠 체험하기</span><span data-en>Try the wheel</span></a></div>
+  </section>
+  <div class="cta" id="get">
+    <h2><span data-ko>일은 줄이고<br>흐름은 그대로.</span><span data-en>Less busywork.<br>Same flow.</span></h2>
+    <ul>
+      <li data-ko>세 가지 휠 · 50가지 넘는 형식 · 동작 6가지</li><li data-en>Three wheels · 50+ formats · 6 actions</li>
+      <li data-ko>사진 프리셋·편집·스캔 다시 짓기</li><li data-en>Photo presets, editing, scan rebuilding</li>
+      <li data-ko>애드온: Hanlabong Developing · Hanlabong PDF</li><li data-en>Add-ons: Hanlabong Developing · Hanlabong PDF</li>
+      <li data-ko>What is it? 요약과 ⌥ Space 글자 팝업</li><li data-en>What is it? summaries and the ⌥ Space text popup</li>
+      <li data-ko>업로드 없이 내 맥에서</li><li data-en>Local, no uploads</li>
+    </ul>
+    <a class="btn" href="https://github.com/rladlrwnd/hanlabong/releases/latest"><span data-ko>다운로드 (.pkg)</span><span data-en>Download (.pkg)</span></a><a class="alt" href="https://github.com/rladlrwnd/hanlabong">GitHub</a>
+    <div class="warn" data-ko>아직 애플 공증 전이라 처음 열 때 경고가 떠요. 시스템 설정 › 개인정보 보호 및 보안에서 "그래도 열기"를 누르면 설치 마법사가 열려요.</div>
+    <div class="warn" data-en>Not notarized yet: on first open, go to System Settings › Privacy &amp; Security › Open Anyway to start the installer.</div>
+    <div class="req" data-ko>macOS 26 이상 · Apple silicon</div><div class="req" data-en>macOS 26 or later · Apple silicon</div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div data-ko>한라봉(예전 이름 DragEdit) · MIT 라이선스. 이름은 Tangerine(귤)에서 따서 제주 한라봉으로. 파일 휠의 생각은 DragShift(MIT)에서 착안했어요. 빛줄기·생각 구슬은 libraries.dev(MIT). 이 페이지의 휠은 흉내 낸 체험판이에요.</div>
+    <div data-en>Hanlabong (formerly DragEdit) · MIT License. Named after Jeju's hallabong citrus, a nod to Tangerine. The file wheel idea was inspired by DragShift (MIT). Border beam and thinking orbs from libraries.dev (MIT). The wheel on this page is a simulation.</div>
+  </div>
+</footer>
+
+<script src="site.js"></script>
+</body>
+</html>

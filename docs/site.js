@@ -281,6 +281,165 @@
   }
   setLang(lang);
 
+  // ---------- 휠 시연(저절로): 파일을 끌다가 키 → 휠 → 칸 고르기 → 놓기. 놓은 뒤 장면(새 파일·요약 창·검토 창)은 장면마다 ----------
+  // opts.rounds(): [{ name, label, color, kind, mode('convert'|'tools'), key('⇧'|'⌘'), slot, child, at:[x,y], step, out, outLabel, after? }]
+  // opts.labels: 단계 표시를 장면이 직접 정할 때(없으면 한 바퀴마다 한 칸)
+  function wheelScene(box, opts) {
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const area = box.querySelector('.wdarea'), cursor = box.querySelector('.wdcursor'), key = box.querySelector('.tdkey');
+    const wheelEl = box.querySelector('.wheel'), wsvg = wheelEl.querySelector('svg'), toastEl = box.querySelector('.toast'), steps = box.querySelector('.tdsteps');
+    const win = box.querySelector('.wdwin');
+    let run = 0;
+    const wait = ms => new Promise(r => setTimeout(r, reduce ? Math.min(ms, 250) : ms));
+    const rect = () => area.getBoundingClientRect();
+    function fileEl(r, made) {
+      const el = document.createElement('div'); el.className = 'file' + (made ? ' made' : '');
+      el.innerHTML = `<div class="icon" style="background:${made ? 'linear-gradient(135deg,#9ad48a,#3fa36b)' : r.color}">${made ? r.outLabel : r.label}</div><span class="name">${made ? r.out : r.name}</span>`;
+      return el;
+    }
+    const place = (el, x, y) => { el.style.left = (x - 46) + 'px'; el.style.top = (y - 40) + 'px'; };
+    const moveCursor = (x, y) => { cursor.style.left = x + 'px'; cursor.style.top = y + 'px'; };
+    const stepOn = i => [...steps.children].forEach((s, k) => s.classList.toggle('on', k === i));
+    function slotPoint(cx, cy, slot, child, n) {
+      const scale = wheelEl.offsetWidth / 400;
+      let deg = slot * SLOT, r = (R0 + R1) / 2;
+      if (child != null) { const [a, b] = childAngles(slot, child, n); deg = (a + b) / 2; r = (R2a + R2b) / 2; }
+      const rad = deg * Math.PI / 180;
+      return [cx + r * scale * Math.sin(rad), cy - r * scale * Math.cos(rad)];
+    }
+    function toast(text) { toastEl.textContent = text; toastEl.classList.add('show'); }
+    async function loop() {
+      const me = ++run, alive = () => me === run;
+      const rounds = opts.rounds();
+      steps.innerHTML = (opts.labels ? opts.labels() : rounds.map(r => r.step)).map(n => `<span>${n}</span>`).join('');
+      area.querySelectorAll('.file').forEach(e => e.remove());
+      win.querySelectorAll('.scenepanel').forEach(e => e.remove());
+      const w = rect().width, h = rect().height;
+      const els = rounds.map(r => { const el = fileEl(r, false); place(el, r.at[0] * w, r.at[1] * h); area.appendChild(el); return el; });
+      moveCursor(w * 0.5, h * 0.55); await wait(700);
+      for (let k = 0; k < rounds.length; k++) {
+        if (!alive()) return;
+        const r = rounds[k], el = els[k];
+        stepOn(opts.labels ? 0 : k);
+        const fx = r.at[0] * w, fy = r.at[1] * h;
+        moveCursor(fx + 6, fy - 8); await wait(750); if (!alive()) return;
+        el.classList.add('dragging');
+        const wx = Math.min(Math.max(w * 0.5, 170), w - 170), wy = Math.min(Math.max(h * 0.5, 170), h - 150);
+        el.style.transition = 'left .7s cubic-bezier(.4,0,.2,1), top .7s cubic-bezier(.4,0,.2,1)';
+        place(el, wx + 44, wy + 54); moveCursor(wx, wy); await wait(800); if (!alive()) return;
+        key.innerHTML = `<kbd>${r.key || '⇧'}</kbd>`;
+        key.classList.add('on'); await wait(260); key.classList.add('press'); await wait(160); key.classList.remove('press');
+        const mode = r.mode || 'convert';
+        const items = W[r.kind][mode].slice(0, 8); while (items.length < 8) items.push(null);
+        wheelEl.style.left = wx + 'px'; wheelEl.style.top = wy + 'px';
+        wsvg.innerHTML = wheelSVG(items, mode, null, null, null);
+        wheelEl.classList.add('show'); win.classList.add('wheeling'); await wait(650); if (!alive()) return;
+        const [sx, sy] = slotPoint(wx, wy, r.slot, null);
+        moveCursor(sx, sy); place(el, sx + 44, sy + 54); await wait(520);
+        const it = items[r.slot];
+        const center = it.ai ? ['What is it?', T('요약 · Tab으로 심층 분석', 'Summary · Tab for more')] : it.kids ? [title(it.t), T('바깥 칸에 놓기', 'Drop on outer slot')] : [title(it.t), T('놓으면 실행', 'Drop to run')];
+        wsvg.innerHTML = wheelSVG(items, mode, { slot: r.slot, child: null }, it.kids ? r.slot : null, center);
+        if (opts.labels) stepOn(1);
+        await wait(650); if (!alive()) return;
+        if (r.child != null && it.kids) {
+          const [cx2, cy2] = slotPoint(wx, wy, r.slot, r.child, it.kids.length);
+          moveCursor(cx2, cy2); place(el, cx2 + 44, cy2 + 54); await wait(520);
+          const kid = it.kids[r.child];
+          wsvg.innerHTML = wheelSVG(items, mode, { slot: r.slot, child: r.child }, r.slot, [T(kid[0], kid[1]), T('놓으면 실행', 'Drop to run')]);
+          await wait(700); if (!alive()) return;
+        }
+        wheelEl.classList.remove('show'); win.classList.remove('wheeling'); key.classList.remove('on');
+        el.classList.remove('dragging'); place(el, fx, fy);
+        await wait(380);
+        if (r.after) {
+          await r.after({ win, alive, wait, stepOn, toast, made: () => { const m = fileEl(r, true); place(m, fx + (r.at[0] > 0.5 ? -108 : 108), fy); area.appendChild(m); }, moveCursor, w, h });
+          if (!alive()) return;
+        } else {
+          const made = fileEl(r, true); place(made, fx + (r.at[0] > 0.5 ? -108 : 108), fy); area.appendChild(made);
+          toast(T(`${r.out} — 원본 옆에 저장됐어요`, `${r.out} — saved next to the original`));
+          moveCursor(fx + (r.at[0] > 0.5 ? -90 : 126), fy + 30);
+          await wait(1700);
+        }
+        toastEl.classList.remove('show'); el.style.transition = '';
+      }
+      await wait(1800);
+      if (alive()) loop();
+    }
+    let started = false;
+    new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting && !started) { started = true; loop(); } }), { threshold: .3 }).observe(box);
+    document.addEventListener('hl-lang', () => { if (started) loop(); });
+    window.addEventListener('resize', () => { if (started) loop(); });
+  }
+
+  // 글자를 한 자씩 써 내려가기(짜라락)
+  async function typeInto(el, text, alive, wait, speed = 18) {
+    for (let i = 1; i <= text.length; i += 2) { if (!alive()) return; el.innerHTML = text.slice(0, i).replace(/\n/g, '<br>') + '<span class="tcaret"></span>'; await wait(speed); }
+    el.innerHTML = text.replace(/\n/g, '<br>');
+  }
+  const ORB = '<span class="pdorb"></span>';
+
+  // 1. 첫 페이지: 문서 → PDF, 사진 → 웹용, 영상 → 720p
+  const wd = document.getElementById('wheeldemo');
+  if (wd) wheelScene(wd, { rounds: () => [
+    { name: T('과제.docx', 'essay.docx'), label: 'DOCX', color: 'linear-gradient(135deg,#4c8dff,#2a5fd6)', kind: 'doc', slot: 0, child: null, out: T('과제.pdf', 'essay.pdf'), outLabel: 'PDF', at: [0.2, 0.36], step: T('문서 → PDF', 'Doc → PDF') },
+    { name: 'photo.jpg', label: 'JPG', color: 'linear-gradient(135deg,#ff9a5a,#ff6b8a)', kind: 'image', slot: 0, child: 0, out: 'photo_web.jpg', outLabel: 'JPG', at: [0.2, 0.68], step: T('사진 → 웹용', 'Photo → Web') },
+    { name: 'clip.mov', label: 'MOV', color: 'linear-gradient(135deg,#7b6cff,#4b3fd1)', kind: 'video', slot: 0, child: 2, out: 'clip_720p.mp4', outLabel: 'MP4', at: [0.8, 0.36], step: T('영상 → 720p', 'Video → 720p') },
+  ] });
+
+  // 2. What is it?: 계약서를 ⌘ 도구 휠의 What is it?에 → 요약이 짜라락 → Tab → 심층 분석
+  const wi = document.getElementById('widemo');
+  if (wi) wheelScene(wi, {
+    labels: () => [T('⌘ 도구 휠', '⌘ Tools wheel'), 'What is it?', T('요약', 'Summary'), T('Tab · 심층 분석', 'Tab · Deep dive')],
+    rounds: () => [{ name: T('자취방계약서.pdf', 'lease.pdf'), label: 'PDF', color: 'linear-gradient(135deg,#ff5e5e,#d92f4b)', kind: 'pdf', mode: 'tools', key: '⌘', slot: 1, child: null, at: [0.18, 0.4],
+      async after(c) {
+        const p = document.createElement('div'); p.className = 'scenepanel wipanel glowbox busy';
+        p.innerHTML = `<div class="wihead">${ORB}<b>What is it?</b><span class="wimode">${T('요약', 'Summary')}</span><span class="wifile">${T('자취방계약서.pdf', 'lease.pdf')}</span></div><div class="wibody"></div><div class="wifoot"><kbd>Tab</kbd> ${T('심층 분석', 'Deep dive')} · <kbd>Esc</kbd> ${T('닫기', 'Close')}</div>`;
+        c.win.appendChild(p); requestAnimationFrame(() => p.classList.add('on'));
+        c.moveCursor(c.w * 0.18 + 120, c.h * 0.4 + 60);
+        c.stepOn(2); const body = p.querySelector('.wibody'), head = p.querySelector('.wihead');
+        body.innerHTML = `<span class="status">${T('읽는 중…', 'Reading…')}</span>`; await c.wait(1100); if (!c.alive()) return;
+        await typeInto(body, T('원룸 임대차 계약서예요.\n보증금 500만 원, 월세 45만 원, 관리비 7만 원은 따로.\n계약 기간은 2026년 3월부터 1년이에요.', 'A one-room lease.\nDeposit 5M won, rent 450K won a month, 70K maintenance extra.\nOne year from March 2026.'), c.alive, c.wait);
+        p.classList.remove('busy'); head.querySelector('.pdorb').outerHTML = '<span class="spark">✦</span>';
+        await c.wait(1400); if (!c.alive()) return;
+        // Tab → 심층 분석
+        const tab = p.querySelector('.wifoot kbd'); tab.classList.add('press'); await c.wait(200); tab.classList.remove('press');
+        c.stepOn(3); p.classList.add('busy', 'deep'); head.querySelector('.spark').outerHTML = ORB; p.querySelector('.wimode').textContent = T('심층 분석', 'Deep dive');
+        body.innerHTML = `<span class="status">${T('조항을 하나씩 살피는 중…', 'Going through each clause…')}</span>`; await c.wait(1200); if (!c.alive()) return;
+        await typeInto(body, T('조심할 조항 3개\n① 계약 전에 나가면 중개수수료를 세입자가 내요 (제7조)\n② 도배·장판까지 원상복구라 범위가 넓어요 (제9조)\n③ 보증금 돌려받는 날이 "새 세입자 입주 후"예요 → 날짜로 바꾸자고 해 보세요', '3 clauses to watch\n① Leaving early means you pay the agent fee (Art. 7)\n② Restoration covers wallpaper and floors (Art. 9)\n③ Deposit returns "after the next tenant moves in" → ask for a date'), c.alive, c.wait, 16);
+        p.classList.remove('busy'); await c.wait(3200);
+        p.classList.remove('on'); await c.wait(400);
+      } }],
+  });
+
+  // 3. OCR 오타수정: 사진 찍은 노트를 ⇧ TXT › AI 오타수정 → 검토 창에서 고친 곳 → 적용 → 노트.txt
+  const oc = document.getElementById('ocrdemo');
+  if (oc) wheelScene(oc, {
+    labels: () => [T('⇧ 변환 휠', '⇧ Convert wheel'), T('TXT › AI 오타수정', 'TXT › AI typo fix'), T('고친 곳 검토', 'Review fixes'), T('적용', 'Apply')],
+    rounds: () => [{ name: T('강의노트.jpg', 'notes.jpg'), label: 'JPG', color: 'linear-gradient(135deg,#ffb36b,#f07c3a)', kind: 'image', slot: 2, child: 1, at: [0.18, 0.4], out: T('강의노트.txt', 'notes.txt'), outLabel: 'TXT',
+      async after(c) {
+        const fixes = T('인직|인지|…행동을 인직하는 과정…\n십리학|심리학|…행동주의 십리학에서는…\n해걸|해결|…갈등 해걸 방식으로…\n0l론|이론|…사회학습 0l론은…', 'recieve|receive|…to recieve feedback…\nbehaviour|behavior|…operant behaviour…\nteh|the|…in teh classroom…\nconditionlng|conditioning|…classical conditionlng…').split('\n').map(l => l.split('|'));
+        const p = document.createElement('div'); p.className = 'scenepanel wipanel ocr glowbox busy';
+        p.innerHTML = `<div class="wihead">${ORB}<b>${T('OCR 오타수정', 'OCR typo fix')}</b><span class="wimode">${T('검토', 'Review')}</span><span class="wifile">${T('강의노트.jpg', 'notes.jpg')}</span></div><div class="ocrrows"><span class="status">${T('글자를 읽고, 불확실한 단어만 AI에게 묻는 중…', 'Reading text, asking the AI about uncertain words only…')}</span></div><div class="ocrfoot"><span class="cnt"></span><span class="apply">${T('적용', 'Apply')}</span></div>`;
+        c.win.appendChild(p); requestAnimationFrame(() => p.classList.add('on'));
+        c.moveCursor(c.w * 0.18 + 120, c.h * 0.4 + 60);
+        c.stepOn(2); await c.wait(1500); if (!c.alive()) return;
+        const rows = p.querySelector('.ocrrows'); rows.innerHTML = '';
+        for (const [was, now, ctx] of fixes) {
+          if (!c.alive()) return;
+          const row = document.createElement('div'); row.className = 'ocrrow';
+          row.innerHTML = `<i>✓</i><span class="was">${was}</span><span class="arrow">→</span><span class="now">${now}</span><span class="ctx">${ctx}</span>`;
+          rows.appendChild(row); requestAnimationFrame(() => row.classList.add('on')); await c.wait(520);
+        }
+        p.classList.remove('busy'); p.querySelector('.cnt').textContent = T(`${fixes.length}곳을 고쳤어요 · 하나씩 보고 적용`, `${fixes.length} fixes · review, then apply`);
+        await c.wait(1600); if (!c.alive()) return;
+        c.stepOn(3); const ap = p.querySelector('.apply'); c.moveCursor(c.w * 0.5 + 200, c.h * 0.5 + 120);
+        await c.wait(700); ap.classList.add('press'); await c.wait(200); ap.classList.remove('press');
+        p.classList.remove('on'); await c.wait(350);
+        c.made(); c.toast(T('강의노트.txt — 원본 옆에 저장됐어요', 'notes.txt — saved next to the original'));
+        await c.wait(2200);
+      } }],
+  });
+
   // ---------- 글자 팝업 움직이는 그림 (AI라서 직접 체험 대신 저절로 돌아가는 장면) ----------
   (() => {
     const doc = document.getElementById('tdDoc'), key = document.getElementById('tdKey'), pop = document.getElementById('tdPop');

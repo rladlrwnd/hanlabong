@@ -21,7 +21,7 @@
       <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15.5" fill="#f26a00"/><circle cx="16" cy="16" r="13.6" fill="#fff3e2"/><path d="M15.88 12.19 L12.95 5.12 A11.30 11.30 0 0 1 19.05 5.12 L16.12 12.19 A3.81 3.81 0 0 0 15.88 12.19Z" fill="#ffe0a0" stroke="#ffe0a0" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.61 13.23 L21.54 6.15 A11.30 11.30 0 0 1 25.85 10.46 L18.77 13.39 A3.81 3.81 0 0 0 18.61 13.23Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M19.81 15.88 L26.88 12.95 A11.30 11.30 0 0 1 26.88 19.05 L19.81 16.12 A3.81 3.81 0 0 0 19.81 15.88Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.77 18.61 L25.85 21.54 A11.30 11.30 0 0 1 21.54 25.85 L18.61 18.77 A3.81 3.81 0 0 0 18.77 18.61Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.12 19.81 L19.05 26.88 A11.30 11.30 0 0 1 12.95 26.88 L15.88 19.81 A3.81 3.81 0 0 0 16.12 19.81Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.39 18.77 L10.46 25.85 A11.30 11.30 0 0 1 6.15 21.54 L13.23 18.61 A3.81 3.81 0 0 0 13.39 18.77Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.19 16.12 L5.12 19.05 A11.30 11.30 0 0 1 5.12 12.95 L12.19 15.88 A3.81 3.81 0 0 0 12.19 16.12Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.23 13.39 L6.15 10.46 A11.30 11.30 0 0 1 10.46 6.15 L13.39 13.23 A3.81 3.81 0 0 0 13.23 13.39Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/></svg>
       <span data-ko>한라봉</span><span data-en>Hanlabong</span>
     </a>
-    <div class="links"><a href="#try"><span data-ko>휠 체험</span><span data-en>Try the wheel</span></a><a href="#dragedit"><span data-ko>드래그에딧</span><span data-en>DragEdit</span></a><a href="#addons"><span data-ko>애드온</span><span data-en>Add-ons</span></a><a href="#pages"><span data-ko>기능별 보기</span><span data-en>Features</span></a></div>
+    <div class="links"><a href="#demos"><span data-ko>시연</span><span data-en>Demos</span></a><a href="#try"><span data-ko>직접 해 보기</span><span data-en>Try it</span></a><a href="#addons"><span data-ko>애드온</span><span data-en>Add-ons</span></a><a href="#pages"><span data-ko>기능별 보기</span><span data-en>Features</span></a><a href="start.html"><span data-ko>시작하기</span><span data-en>Get started</span></a></div>
     <div class="contact">
       <button type="button" class="contactbtn" aria-expanded="false" aria-controls="contactpop"><span data-ko>문의</span><span data-en>Contact</span></button>
       <div class="contactpop" id="contactpop" role="dialog" aria-label="Contact">
@@ -47,8 +47,62 @@
     </p>
     <div class="chipsrow"><span><span data-ko>⇧ 파일 바꾸기</span><span data-en>⇧ Convert</span></span><span><span data-ko>⌥ Space 글자 고치기</span><span data-en>⌥ Space fix text</span></span><span><span data-ko>PDF 빈칸 자동 채우기</span><span data-en>Auto-fill PDF forms</span></span><span><span data-ko>업로드 없이 내 맥에서</span><span data-en>Local, no uploads</span></span></div>
 
-    <div class="trybox" id="try">
-      <div class="democap"><span class="tag">Hanlabong</span><h3><span data-ko>한라봉 휠 체험</span><span data-en>Try the Hanlabong wheel</span></h3><p><span data-ko>파일을 끌다가 ⇧ 하나. 커서 아래 휠의 칸에 놓으면 원본 옆에 새 파일이 생겨요.</span><span data-en>Start dragging, tap ⇧, and drop on a slot. The new file lands next to the original.</span></p></div>
+    <div id="demos">
+    <div class="wddemo" id="wheeldemo">
+      <div class="democap"><span class="tag">Hanlabong</span><h3><span data-ko>끌다가 ⇧, 놓으면 끝</span><span data-en>Drag, tap ⇧, drop</span></h3><p><span data-ko>파일을 끌다가 키 하나. 커서 아래 휠의 칸에 놓으면 원본 옆에 새 파일이 생겨요.</span><span data-en>Start dragging, tap a key, and drop on a slot. The new file lands next to the original.</span></p></div>
+      <div class="wdwin" aria-hidden="true">
+        <div class="tdbar"><i></i><i></i><i></i><span data-ko>Finder · 과제</span><span data-en>Finder · Assignments</span></div>
+        <div class="wdarea"></div>
+        <div class="wheel"><div class="glassbg"></div><svg viewBox="0 0 400 400"></svg></div>
+        <div class="toast"></div>
+        <div class="tdkey"><kbd>⇧</kbd></div>
+        <svg class="wdcursor" viewBox="0 0 24 24" style="left:50%;top:55%"><path d="M5 3l14 8-6.2 1.6L9.5 19z" fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        <div class="tdsteps"></div>
+      </div>
+    </div>
+
+    <div class="textdemo first" id="dragedit">
+      <div class="democap"><span class="tag">DragEdit</span><h3><span data-ko>글자는 ⌥ Space</span><span data-en>Text gets ⌥ Space</span></h3><p><span data-ko>어느 앱에서든 글자를 고르고 ⌥ Space. 규칙은 바로, 애매한 건 내 맥의 AI가.</span><span data-en>Select text in any app and press ⌥ Space. Rules run instantly. The fuzzy parts go to the AI on your Mac.</span></p></div>
+      <div class="tdwin" aria-hidden="true">
+        <div class="tdbar"><i></i><i></i><i></i><span data-ko>메모</span><span data-en>Notes</span></div>
+        <div class="tddoc" id="tdDoc"></div>
+        <div class="tdkey" id="tdKey"><kbd>⌥</kbd><kbd>Space</kbd></div>
+        <div class="tdpop" id="tdPop">
+          <div class="tdtop"><span class="tdagent" id="tdAgent"></span><span class="tdin" id="tdIn"></span></div>
+          <div class="tdprev" id="tdPrev"></div>
+          <div class="tdlist" id="tdList"></div>
+          <div class="tdout" id="tdOut"></div>
+        </div>
+        <div class="tdsteps" id="tdSteps"></div>
+      </div>
+    </div>
+
+    <div class="pdfdemo first">
+      <div class="democap"><span class="tag">Hanlabong PDF</span><h3><span data-ko>신청서 빈칸은 AI가 채워요</span><span data-en>AI fills in the form</span></h3><p><span data-ko>빈칸을 찾아 입력칸을 만들고, 미리 넣어 둔 내 정보로 짜라락. 서명도, "주소에 ~ 써줘"도 말 한마디로.</span><span data-en>It finds the blanks, makes fields and fills them from your saved info. Signatures and "put X in the address" too.</span></p></div>
+      <div class="pdwin" id="pdwin" aria-hidden="true">
+        <div class="lights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+        <div class="pdsteps"></div>
+        <div class="pdpaper"></div>
+        <div class="pdrail"><span><svg viewBox="0 0 24 24"><path d="M5 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H5z M19 4h-6 M19 4v14h-6"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M8 6h12 M8 12h12 M8 18h12 M4 6h.01 M4 12h.01 M4 18h.01"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M4 7l2 2 4-4 M13 7h7 M4 15l2 2 4-4 M13 15h7"/></svg></span><hr><span><svg viewBox="0 0 24 24"><path d="M4 7h10 M18 7h2 M4 17h4 M12 17h8 M16 5v4 M10 15v4"/></svg></span></div>
+        <div class="pdpage">1 / 1</div>
+        <div class="pdbar">
+          <div class="pdreply"><div><p></p></div></div>
+          <div class="pdrow"><span class="spark">✦</span><span class="pdin"></span>
+            <span class="pdchip"><span class="face">◕</span><span class="name">gemma4:12b</span><small><span data-ko>자동</span><span data-en>Auto</span></small><span style="opacity:.6">⌄</span></span>
+            <span class="pdsend">↑</span></div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="try">
+    <div class="eyebrow"><span data-ko>직접 해 보기</span><span data-en>Try it</span></div>
+    <h2><span data-ko>휠을 직접 돌려 봐요.</span><span data-en>Spin the wheel yourself.</span></h2>
+    <p class="sub"><span data-ko>파일 아이콘을 끌다가 ⇧ · ⌘ · ⌃ 를 누르거나 아래 단추를 눌러요. 칸에 놓으면 무엇이 생기는지 보여 줘요.</span><span data-en>Drag a file icon and press ⇧ · ⌘ · ⌃ or tap a key below. Drop on a slot to see what you get.</span></p>
+    <div class="trybox" style="margin-top:28px">
     <div class="stage" id="stage">
       <div class="hint">
         <span class="deskhint"><span data-ko><b>파일을 끌어보세요.</b> 끄는 동안 ⇧ · ⌘ · ⌃ 를 누르거나 아래 단추를 눌러요.</span>
@@ -65,26 +119,8 @@
       </div>
     </div>
     </div>
+  </section>
 
-    <div class="textdemo" id="dragedit">
-      <div class="democap"><span class="tag">DragEdit</span><h3><span data-ko>글자는 ⌥ Space</span><span data-en>Text gets ⌥ Space</span></h3><p><span data-ko>어느 앱에서든 글자를 고르고 ⌥ Space. 규칙은 바로, 애매한 건 내 맥의 AI가.</span><span data-en>Select text in any app and press ⌥ Space. Rules run instantly. The fuzzy parts go to the AI on your Mac.</span></p></div>
-      <div class="tdwin" aria-hidden="true">
-        <div class="tdbar"><i></i><i></i><i></i><span data-ko>메모</span><span data-en>Notes</span></div>
-        <div class="tddoc" id="tdDoc"></div>
-        <div class="tdkey" id="tdKey"><kbd>⌥</kbd><kbd>Space</kbd></div>
-        <div class="tdpop" id="tdPop">
-          <div class="tdtop"><span class="tdagent" id="tdAgent"></span><span class="tdin" id="tdIn"></span></div>
-          <div class="tdprev" id="tdPrev"></div>
-          <div class="tdlist" id="tdList"></div>
-          <div class="tdout" id="tdOut"></div>
-        </div>
-        <div class="tdsteps" id="tdSteps"></div>
-      </div>
-    </div>
-  </div>
-</header>
-
-<main class="wrap">
   <section id="addons">
     <div class="eyebrow" data-ko>애드온</div><div class="eyebrow" data-en>Add-ons</div>
     <h2><span data-ko>네 개 쓰던 걸<br>한라봉 하나로.</span><span data-en>Four apps.<br>One hallabong.</span></h2>
@@ -97,23 +133,6 @@
       <div class="burst"></div>
       <svg viewBox="0 0 32 32" aria-hidden="true" class="mergelogo"><circle cx="16" cy="16" r="15.5" fill="#f26a00"/><circle cx="16" cy="16" r="13.6" fill="#fff3e2"/><path d="M15.88 12.19 L12.95 5.12 A11.30 11.30 0 0 1 19.05 5.12 L16.12 12.19 A3.81 3.81 0 0 0 15.88 12.19Z" fill="#ffe0a0" stroke="#ffe0a0" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.61 13.23 L21.54 6.15 A11.30 11.30 0 0 1 25.85 10.46 L18.77 13.39 A3.81 3.81 0 0 0 18.61 13.23Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M19.81 15.88 L26.88 12.95 A11.30 11.30 0 0 1 26.88 19.05 L19.81 16.12 A3.81 3.81 0 0 0 19.81 15.88Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M18.77 18.61 L25.85 21.54 A11.30 11.30 0 0 1 21.54 25.85 L18.61 18.77 A3.81 3.81 0 0 0 18.77 18.61Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M16.12 19.81 L19.05 26.88 A11.30 11.30 0 0 1 12.95 26.88 L15.88 19.81 A3.81 3.81 0 0 0 16.12 19.81Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.39 18.77 L10.46 25.85 A11.30 11.30 0 0 1 6.15 21.54 L13.23 18.61 A3.81 3.81 0 0 0 13.39 18.77Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.19 16.12 L5.12 19.05 A11.30 11.30 0 0 1 5.12 12.95 L12.19 15.88 A3.81 3.81 0 0 0 12.19 16.12Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M13.23 13.39 L6.15 10.46 A11.30 11.30 0 0 1 10.46 6.15 L13.39 13.23 A3.81 3.81 0 0 0 13.23 13.39Z" fill="#ff9a2e" stroke="#ff9a2e" stroke-width="1.4" stroke-linejoin="round"/></svg>
       <div class="mergetext"><span data-ko>한라봉 하나로</span><span data-en>All in one hallabong</span></div>
-    </div>
-
-    <div class="pdfdemo">
-      <div class="democap"><span class="tag">Hanlabong PDF</span><h3><span data-ko>신청서 빈칸은 AI가 채워요</span><span data-en>AI fills in the form</span></h3><p><span data-ko>빈칸을 찾아 입력칸을 만들고, 미리 넣어 둔 내 정보로 짜라락. 서명도, "주소에 ~ 써줘"도 말 한마디로.</span><span data-en>It finds the blanks, makes fields and fills them from your saved info. Signatures and "put X in the address" too.</span></p></div>
-      <div class="pdwin" id="pdwin" aria-hidden="true">
-        <div class="lights"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
-        <div class="pdsteps"></div>
-        <div class="pdpaper"></div>
-        <div class="pdrail"><span><svg viewBox="0 0 24 24"><path d="M5 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H5z M19 4h-6 M19 4v14h-6"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M8 6h12 M8 12h12 M8 18h12 M4 6h.01 M4 12h.01 M4 18h.01"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M12 5v14 M5 12h14"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M4 7l2 2 4-4 M13 7h7 M4 15l2 2 4-4 M13 15h7"/></svg></span><hr><span><svg viewBox="0 0 24 24"><path d="M4 7h10 M18 7h2 M4 17h4 M12 17h8 M16 5v4 M10 15v4"/></svg></span></div>
-        <div class="pdpage">1 / 1</div>
-        <div class="pdbar">
-          <div class="pdreply"><div><p></p></div></div>
-          <div class="pdrow"><span class="spark">✦</span><span class="pdin"></span>
-            <span class="pdchip"><span class="face">◕</span><span class="name">gemma4:12b</span><small><span data-ko>자동</span><span data-en>Auto</span></small><span style="opacity:.6">⌄</span></span>
-            <span class="pdsend">↑</span></div>
-        </div>
-      </div>
     </div>
 
     <div class="addons">
@@ -143,13 +162,14 @@
     <div class="eyebrow" data-ko>기능별로 보기</div><div class="eyebrow" data-en>Features</div>
     <h2><span data-ko>하나씩 자세히.</span><span data-en>One at a time.</span></h2>
     <p class="sub"><span data-ko>휠로 바꾸는 법, 글자 손질, PDF, 애드온까지. 궁금한 것부터 골라 봐요.</span><span data-en>Converting with the wheel, fixing text, PDFs and add-ons. Start with what you need.</span></p>
+    <a class="startband" href="start.html"><div><b><span data-ko>처음이라면, 시작하기부터</span><span data-en>New here? Start here</span></b><span><span data-ko>설치 · AI 준비(Ollama · Groq 무료 키) · 대학생 활용법 · 단축키를 한 페이지에.</span><span data-en>Install, set up AI (Ollama or a free Groq key), student tips and shortcuts on one page.</span></span></div><span class="go">→</span></a>
     <div class="pages">
       <a class="pagecard" href="hanlabong.html"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 3v6 M21 12h-6 M12 21v-6 M3 12h6 M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></div><div>
         <h3><span data-ko>한라봉 · 세 가지 휠</span><span data-en>Hanlabong · Three wheels</span></h3><p><span data-ko>⇧ 변환 · ⌘ 도구 · ⌃ 동작. 사진·RAW·PDF·문서·영상 50가지 넘는 형식, 스캔 다시 짓기, 한글 문서까지.</span><span data-en>⇧ Convert · ⌘ Tools · ⌃ Actions. 50+ formats, scan rebuilding, Hangul documents.</span></p><span class="go"><span data-ko>자세히 보기 →</span><span data-en>Learn more →</span></span></div></a>
       <a class="pagecard" href="dragedit.html"><div class="ic"><svg viewBox="0 0 24 24"><path d="M5 6h14 M5 11h14 M5 16h8 M17 15l2 2 3-4"/></svg></div><div>
         <h3><span data-ko>DragEdit · 글자와 AI</span><span data-en>DragEdit · Text and AI</span></h3><p><span data-ko>⌥ Space 글자 팝업, 문서 요약 What is it?, OCR 오타 고치기. 내 맥의 AI가 먼저.</span><span data-en>The ⌥ Space popup, What is it? summaries and OCR typo fixes. Local AI first.</span></p><span class="go"><span data-ko>자세히 보기 →</span><span data-en>Learn more →</span></span></div></a>
       <a class="pagecard" href="pdf.html"><div class="ic"><svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z M14 3v4h4 M9.5 12h5 M9.5 15h5 M9.5 18h3"/></svg></div><div>
-        <h3><span data-ko>PDF 한라봉</span><span data-en>Hanlabong PDF</span></h3><p><span data-ko>빈칸 자동 채우기, 트랙패드 서명, 책처럼 읽기와 문제 ↔ 해설 건너가기, 표시·가리기·쪽 정리.</span><span data-en>Auto-fill forms, trackpad signatures, book reading with problem ↔ answer jumps, markup and redaction.</span></p><span class="go"><span data-ko>자세히 보기 →</span><span data-en>Learn more →</span></span></div></a>
+        <h3><span data-ko>한라봉 PDF</span><span data-en>Hanlabong PDF</span></h3><p><span data-ko>맥 미리보기의 기능에 AI를 더했어요. 문제집은 AI가 목차를 만들어 말 한마디로 해설까지 가고, 신청서 빈칸은 자동으로, 쪽 편집도 한 곳에서.</span><span data-en>Everything in Preview, plus AI: contents for study books with spoken jumps to the answers, auto-filled forms, and page editing in one place.</span></p><span class="go"><span data-ko>자세히 보기 →</span><span data-en>Learn more →</span></span></div></a>
       <a class="pagecard" href="addons.html"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M16.5 13v7 M13 16.5h7"/></svg></div><div>
         <h3><span data-ko>애드온 · 기타</span><span data-en>Add-ons · More</span></h3><p><span data-ko>라이트룸 같은 사진 현상 Hanlabong Developing, 그리고 준비 중인 것들.</span><span data-en>Lightroom-style Hanlabong Developing, and what is coming next.</span></p><span class="go"><span data-ko>자세히 보기 →</span><span data-en>Learn more →</span></span></div></a>
     </div>
