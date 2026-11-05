@@ -41,7 +41,13 @@ struct AssistantBar: View {
                     if let shown = shownReply {
                         HStack(alignment: .top, spacing: 10) {
                             Group {
-                                if let status = statusLine { StatusText(text: status) } else { TypewriterText(target: shown) }
+                                if let status = statusLine { StatusText(text: status) } else {
+                                    // 긴 답은 상자 안에서 내려 읽는다(상자·창이 길어지지 않게)
+                                    ScrollView(.vertical) { TypewriterText(target: shown).frame(maxWidth: .infinity, alignment: .leading) }
+                                        .scrollIndicators(.automatic)
+                                        .frame(maxHeight: 190)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                             .font(.system(size: 13.5))
                             .frame(maxWidth: .infinity, alignment: .leading)

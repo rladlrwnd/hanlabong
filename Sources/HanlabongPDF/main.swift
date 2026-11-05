@@ -49,7 +49,10 @@ final class PDFAppDelegate: NSObject, NSApplicationDelegate {
         window.title = "Hanlabong PDF"
         window.appearance = NSAppearance(named: .darkAqua)
         window.minSize = NSSize(width: 820, height: 560)
-        window.contentView = NSHostingView(rootView: PDFWindowView(session: session))
+        // 안의 화면(긴 AI 답, 쌓이는 단추)이 창 크기를 늘리거나 최소 크기를 잡지 못하게: 창 크기는 창이 정한다
+        let host = NSHostingView(rootView: PDFWindowView(session: session))
+        host.sizingOptions = []
+        window.contentView = host
         window.center()
         window.isReleasedWhenClosed = false
         window.makeKeyAndOrderFront(nil)
