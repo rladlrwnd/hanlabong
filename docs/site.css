@@ -430,3 +430,19 @@ html[lang="ko"] [data-en] { display: none !important; }
 .nextpages a { padding: 10px 16px; border-radius: 99px; border: 1px solid var(--line); text-decoration: none; font-weight: 600; font-size: 14px; background: var(--card); }
 .nextpages a:hover { border-color: color-mix(in srgb, var(--btn) 45%, transparent); }
 nav .links a.on { color: var(--ink); font-weight: 600; }
+
+/* ===== 위 메뉴의 문의 ===== */
+.contact { position: relative; }
+.contactbtn { border: 1px solid var(--line); background: none; color: var(--ink); font: inherit; font-size: 14px; padding: 7px 14px; border-radius: 99px; cursor: pointer; white-space: nowrap; }
+.contactbtn:hover, .contactbtn[aria-expanded="true"] { border-color: color-mix(in srgb, var(--btn) 55%, transparent); color: var(--accent-ink); }
+.contactpop { position: absolute; right: 0; top: calc(100% + 10px); width: 300px; padding: 14px; border-radius: 18px; z-index: 50;
+  background: color-mix(in srgb, var(--paper) 96%, transparent); border: 1px solid var(--glass-edge); box-shadow: var(--shadow);
+  backdrop-filter: blur(22px) saturate(1.4); -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  opacity: 0; transform: translateY(-6px) scale(.97); transform-origin: top right; pointer-events: none; transition: opacity .2s, transform .3s cubic-bezier(.3,1.4,.5,1); }
+.contactpop.on { opacity: 1; transform: none; pointer-events: auto; }
+.contactpop p { margin: 0 2px 10px; font-size: 14px; color: var(--sub); line-height: 1.5; }
+.contactpop a { display: block; padding: 11px 12px; border-radius: 12px; text-decoration: none; border: 1px solid var(--line); margin-top: 8px; transition: border-color .2s, background .2s; }
+.contactpop a:hover { border-color: color-mix(in srgb, var(--btn) 50%, transparent); background: color-mix(in srgb, var(--glow1) 12%, transparent); }
+.contactpop a b { display: block; font-size: 14.5px; }
+.contactpop a span { display: block; font-size: 13px; color: var(--sub); margin-top: 2px; word-break: break-all; }
+@media (max-width: 760px) { .contactbtn { padding: 6px 11px; font-size: 13px; } .contactpop { right: -80px; width: min(300px, calc(100vw - 32px)); } }

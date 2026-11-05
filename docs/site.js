@@ -463,3 +463,17 @@
   document.addEventListener('hl-lang', () => { if (started) loop(); else buildPaper(); });
   buildPaper();
 })();
+
+// 위 메뉴의 문의: 누르면 작은 창. 메일 주소는 열 때 조립한다(사이트 글에 그대로 두면 스팸 봇이 긁어 간다)
+(() => {
+  const btn = document.querySelector('.contactbtn'), pop = document.getElementById('contactpop');
+  if (!btn || !pop) return;
+  const mail = pop.querySelector('.cmail'), addr = mail.querySelector('.addr');
+  const address = () => mail.dataset.u + '@' + mail.dataset.d;
+  addr.textContent = address();
+  mail.href = 'mailto:' + address() + '?subject=' + encodeURIComponent('[한라봉] 문의');
+  const toggle = on => { pop.classList.toggle('on', on); btn.setAttribute('aria-expanded', on); };
+  btn.addEventListener('click', e => { e.stopPropagation(); toggle(!pop.classList.contains('on')); });
+  document.addEventListener('click', e => { if (!pop.contains(e.target)) toggle(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') toggle(false); });
+})();
