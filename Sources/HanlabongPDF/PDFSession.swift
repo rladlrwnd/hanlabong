@@ -20,6 +20,8 @@ final class PDFSession: ObservableObject {
     weak var view: MarkupPDFView?
     /// 새 문서를 열었을 때(창 크기를 쪽 모양에 맞추려고)
     var onDocumentShown: ((PDFDocument) -> Void)?
+    /// 이미 문서가 열린 창에 다른 파일이 오면 새 창으로 넘긴다(창마다 문서 하나)
+    var openElsewhere: (([URL]) -> Void)?
     /// 한 쪽이 통째로 보이게 맞춘 상태(직접 확대·축소하면 풀린다). 창 크기가 바뀌면 다시 맞춘다
     var fitsPage = true
 
@@ -90,9 +92,14 @@ final class PDFSession: ObservableObject {
     // MARK: 열기
 
     /// PDF는 그대로, 한글(.hwp·.hwpx)·Word 등 문서는 PDF로 바꿔서, 사진은 한 쪽짜리로 연다.
-    /// 여러 개를 한꺼번에 넘기면 첫 파일 뒤에 차례대로 붙인다(합치기).
+    /// 창 하나에 문서 하나(여러 개면 창이 따로 뜬다). 합치기는 "뒤에 붙이기"로.
     func open(_ urls: [URL]) {
         guard let first = urls.first else { return }
+        if let openElsewhere {
+            // 창마다 문서 하나: 이미 문서가 열린 창이면 새 창에서, 여러 개면 첫 파일만 여기 나머지는 각자 새 창에
+            if document != nil { openElsewhere(urls); return }
+            if urls.count > 1 { openElsewhere(Array(urls.dropFirst())); open([first]); return }
+        }
         // 새 파일이 오면 바꿔서 연다. 저장 안 한 고침이 있으면 날리지 않게 멈춘다(뒤에 붙이기는 "합치기"로)
         if document != nil {
             guard !dirty else {
