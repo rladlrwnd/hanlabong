@@ -248,6 +248,7 @@ package final class FileFeatureController {
         var job = JobCenter.Job(id: id, title: skill.name, symbol: skill.symbol ?? "photo", total: urls.count, started: started)
         job.sizes = sizes
         job.pastSecondsPerByte = JobSpeedStore.secondsPerByte(for: skill.id)
+        job.parallel = runner.concurrency(for: skill, files: urls.count)
         jobs.begin(job) {
             task.cancel()
         }

@@ -29,6 +29,8 @@ package final class JobCenter: ObservableObject {
         package var lastFinishedAt: Date?
         /// 지난번 같은 변환의 빠르기(1바이트에 몇 초). 처음 하는 변환이면 nil
         package var pastSecondsPerByte: Double?
+        /// 동시에 돌리는 개수(2개 이상이면 카드에 보여준다)
+        package var parallel = 1
 
         package init(id: UUID, title: String, symbol: String, total: Int, started: Date, agent: Agent? = nil, unit: String = "") {
             self.id = id

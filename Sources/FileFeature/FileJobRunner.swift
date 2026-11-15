@@ -25,11 +25,16 @@ final class FileJobRunner: @unchecked Sendable {
     private let executor = FileSkillExecutor()
     /// 무거운 변환을 돌리는 전용 큐. Swift 동시성 공용 스레드를 붙잡지 않는다(Vision 글자 인식이 그 스레드를 쓰기 때문).
     private static let workQueue = DispatchQueue(label: "app.dragedit.file-jobs", qos: .userInitiated, attributes: .concurrent)
-    /// 큰 사진 한 장은 처리 중에 1~2GB를 쓴다. 둘까지만 동시에.
-    let maxConcurrent: Int
+    /// 동시에 돌릴 개수. nil이면 변환 종류와 이 맥 사양을 보고 알아서 정한다(`Parallelism`)
+    let maxConcurrent: Int?
 
-    init(maxConcurrent: Int = 2) {
+    init(maxConcurrent: Int? = nil) {
         self.maxConcurrent = maxConcurrent
+    }
+
+    /// 이 스킬을 몇 개씩 동시에 돌릴지(파일 수보다 많이는 안 돈다)
+    func concurrency(for skill: FileSkill, files: Int) -> Int {
+        max(1, min(maxConcurrent ?? Parallelism.limit(for: skill), max(files, 1)))
     }
 
     /// 무거운 일 하나를 전용 큐에서 돌린다(공용 스레드를 붙잡지 않는다). Task가 취소되면 깃발로 전한다.
@@ -79,7 +84,7 @@ final class FileJobRunner: @unchecked Sendable {
                     }
                 }
             }
-            for _ in 0..<min(maxConcurrent, total) { addNext() }
+            for _ in 0..<concurrency(for: skill, files: total) { addNext() }
 
             var ordered: [(Int, Outcome)] = []
             while let result = await group.next() {
@@ -122,5 +127,47 @@ final class FileJobRunner: @unchecked Sendable {
             log.error("file job failed: \(String(describing: error), privacy: .private)")
             return .failed(JobRecord.Failure(name: url.lastPathComponent, message: error.localizedDescription))
         }
+    }
+}
+
+/// 변환을 몇 개씩 동시에 돌릴지 정한다. 무엇이 병목인지가 종류마다 달라서:
+/// - 영상: 맥의 영상 인코딩 칩 수가 한계(M1~M5 기본·Pro·Max는 2개처럼 쓰고, Ultra는 칩이 두 배라 4). ffmpeg는 파일 하나에도 코어를 거의 다 쓴다
+/// - 사진·RAW: 큰 사진 한 장이 1~2GB를 쓰니 메모리가 한계(8GB당 하나), 성능 코어 수를 넘지 않게
+/// - 글자 인식(OCR)·PDF·문서: 코어 수의 절반
+enum Parallelism {
+    struct Machine: Equatable {
+        var performanceCores: Int
+        var memoryGB: Int
+        var chip: String
+
+        static let current: Machine = {
+            func sysctlInt(_ name: String) -> Int {
+                var value: Int32 = 0
+                var size = MemoryLayout<Int32>.size
+                return sysctlbyname(name, &value, &size, nil, 0) == 0 ? Int(value) : 0
+            }
+            var chip = [CChar](repeating: 0, count: 128)
+            var size = chip.count
+            let name = sysctlbyname("machdep.cpu.brand_string", &chip, &size, nil, 0) == 0
+                ? String(decoding: chip.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self) : ""
+            let cores = sysctlInt("hw.perflevel0.physicalcpu")
+            return Machine(performanceCores: cores > 0 ? cores : ProcessInfo.processInfo.activeProcessorCount,
+                           memoryGB: Int(ProcessInfo.processInfo.physicalMemory / 1_073_741_824),
+                           chip: name)
+        }()
+    }
+
+    static func limit(for skill: FileSkill, on machine: Machine = .current) -> Int {
+        switch skill.steps.last {
+        case .video?:
+            return machine.chip.contains("Ultra") ? 4 : 2
+        default:
+            break
+        }
+        let photos = skill.input.contains(.image) || skill.input.contains(.raw)
+        if photos, !skill.input.contains(.pdf) {
+            return min(max(min(machine.performanceCores, machine.memoryGB / 8), 2), 6)
+        }
+        return min(max(machine.performanceCores / 2, 2), 4)
     }
 }

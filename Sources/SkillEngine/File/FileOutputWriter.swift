@@ -46,6 +46,7 @@ public enum FileOutputWriter {
             // moveItem은 이미 있는 파일 위로는 옮기지 않는다 → 덮어쓰기가 구조적으로 불가능하다
             do {
                 try fileManager.moveItem(at: temporary, to: destination)
+                unhide(destination)
                 return destination
             } catch let error as NSError where error.domain == NSCocoaErrorDomain && error.code == NSFileWriteFileExistsError {
                 continue
@@ -56,6 +57,15 @@ public enum FileOutputWriter {
         }
         try? fileManager.removeItem(at: temporary)
         throw FileSkillError.unsafeOutputPath
+    }
+
+    /// NAS(SMB) 폴더에서는 점(.)으로 시작하는 임시 파일에 맥이 숨김 표시를 붙이고, 이름을 바꿔도 그대로 남는다.
+    /// 그러면 결과가 Finder 목록에 안 보인다 → 옮긴 뒤 숨김을 푼다(내 맥 디스크에서는 원래 안 붙어서 아무 일도 없다)
+    static func unhide(_ url: URL) {
+        var url = url
+        var values = URLResourceValues()
+        values.isHidden = false
+        try? url.setResourceValues(values)
     }
 }
 

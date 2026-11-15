@@ -156,6 +156,9 @@ private struct JobRow: View {
         } else {
             parts.append(L("\(duration(elapsed)) 지남 · 남은 시간 재는 중", "\(duration(elapsed)) elapsed · estimating"))
         }
+        // 몇 개가 같이 도는지: 아직 남은 파일 수만큼만(마지막 하나 남으면 안 보인다)
+        let running = min(job.parallel, job.total - job.done)
+        if running > 1 { parts.append(L("\(running)개 동시에", "\(running) at once")) }
         if let current = job.current { parts.append(current) }
         return parts.joined(separator: " · ")
     }
