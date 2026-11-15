@@ -128,7 +128,7 @@ struct FileJobRunnerTests {
         let dir = try tempDir()
         let urls = try (0..<4).map { try photo("p\($0).png", in: dir) }
         let box = Box()
-        let report = await FileJobRunner().run(skill: DefaultFileSkills.web, urls: urls, onProgress: { done, _ in
+        let report = await FileJobRunner().run(skill: DefaultFileSkills.web, urls: urls, onProgress: { done, _, _ in
             box.lock.lock(); box.progress.append(done); box.lock.unlock()
         })
         #expect(report.outputs.map(\.lastPathComponent) == ["p0_web.jpg", "p1_web.jpg", "p2_web.jpg", "p3_web.jpg"])

@@ -145,6 +145,28 @@ private struct JobRow: View {
         return L("\(job.title) 진행 중", "\(job.title) in progress")
     }
 
+    /// 아랫줄: "42% · 약 1분 20초 남음 · 파일이름" (모르면 지난 시간만)
+    static func status(_ job: JobCenter.Job, _ estimate: JobCenter.Job.Estimate, elapsed: TimeInterval) -> String {
+        var parts: [String] = []
+        if let fraction = estimate.fraction { parts.append("\(Int((fraction * 100).rounded(.down)))%") }
+        if let remaining = estimate.remaining {
+            parts.append(L("약 \(duration(remaining)) 남음", "about \(duration(remaining)) left"))
+        } else if estimate.overdue {
+            parts.append(L("거의 다 됐어요 · \(duration(elapsed)) 지남", "almost done · \(duration(elapsed)) elapsed"))
+        } else {
+            parts.append(L("\(duration(elapsed)) 지남 · 남은 시간 재는 중", "\(duration(elapsed)) elapsed · estimating"))
+        }
+        if let current = job.current { parts.append(current) }
+        return parts.joined(separator: " · ")
+    }
+
+    static func duration(_ seconds: TimeInterval) -> String {
+        let s = max(Int(seconds.rounded()), 1)
+        if s < 60 { return L("\(s)초", "\(s)s") }
+        if s < 3600 { return s % 60 == 0 ? L("\(s / 60)분", "\(s / 60)m") : L("\(s / 60)분 \(s % 60)초", "\(s / 60)m \(s % 60)s") }
+        return L("\(s / 3600)시간 \(s % 3600 / 60)분", "\(s / 3600)h \(s % 3600 / 60)m")
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             if let agent = job.agent {
@@ -181,18 +203,21 @@ private struct JobRow: View {
                             .help(L("아무것도 저장하지 않아요", "Nothing will be saved"))
                     }
                 } else {
-                    if job.total > 1 {
-                        ProgressView(value: Double(job.done), total: Double(job.total))
-                    } else {
-                        ProgressView().progressViewStyle(.linear)    // 얼마나 남았는지 알 수 없을 때
-                    }
                     TimelineView(.periodic(from: job.started, by: 1)) { context in
-                        let seconds = max(0, Int(context.date.timeIntervalSince(job.started)))
-                        Text([job.current, L("\(seconds)초", "\(seconds) s")].compactMap { $0 }.joined(separator: " · "))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
+                        let estimate = job.estimate(at: context.date)
+                        VStack(alignment: .leading, spacing: 6) {
+                            if let fraction = estimate.fraction {
+                                ProgressView(value: fraction)
+                            } else {
+                                ProgressView().progressViewStyle(.linear)    // 얼마나 남았는지 알 수 없을 때
+                            }
+                            Text(Self.status(job, estimate, elapsed: context.date.timeIntervalSince(job.started)))
+                                .font(.caption)
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
                     }
                 }
             }

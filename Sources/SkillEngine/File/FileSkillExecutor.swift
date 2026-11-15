@@ -231,7 +231,7 @@ public final class FileSkillExecutor: @unchecked Sendable {
         let done = DispatchSemaphore(value: 0)
         // 내보내기는 async라서 별도 Task로 돌리고, 이 스레드(전용 작업 큐)는 기다리면서 취소 깃발을 본다
         let task = Task {
-            do { try await Self.export(spec, input: input, to: out, ext: ext, name: name) } catch { box.failure = error }
+            do { try await Self.export(spec, input: input, to: out, ext: ext, name: name, progress: cancellation) } catch { box.failure = error }
             done.signal()
         }
         while done.wait(timeout: .now() + 0.2) == .timedOut {
@@ -249,7 +249,7 @@ public final class FileSkillExecutor: @unchecked Sendable {
         return FileResult(data: Data(), fileExtension: ext, width: 0, height: 0, fileURL: out)
     }
 
-    private static func export(_ spec: VideoSpec, input: URL, to out: URL, ext: String, name: String) async throws {
+    private static func export(_ spec: VideoSpec, input: URL, to out: URL, ext: String, name: String, progress: FileCancellation) async throws {
         let asset = AVURLAsset(url: input)
         let duration = try await asset.load(.duration)
         let videoTracks = try await asset.loadTracks(withMediaType: .video)
@@ -286,6 +286,14 @@ public final class FileSkillExecutor: @unchecked Sendable {
             throw FileSkillError.exportFailed(L("이 영상에는 이 설정을 쓸 수 없어요", "This setting can't be used for this video"))
         }
         let type: AVFileType = ext == "m4a" ? .m4a : (ext == "mov" ? .mov : .mp4)
+        // 내보내는 동안 몇 %인지 진행 카드로 보낸다
+        nonisolated(unsafe) let watched = session
+        let watcher = Task {
+            for await state in watched.states(updateInterval: 0.5) {
+                if case .exporting(let p) = state { progress.report(p.fractionCompleted) }
+            }
+        }
+        defer { watcher.cancel() }
         do {
             try await session.export(to: out, as: type)
         } catch is CancellationError {

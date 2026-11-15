@@ -46,10 +46,12 @@ final class FileJobRunner: @unchecked Sendable {
 
     /// - Parameters:
     ///   - onStarted: 파일 하나를 시작할 때(이름은 화면에만 쓰고 로그에는 남기지 않는다)
-    ///   - onProgress: 파일 하나가 끝날 때마다(끝난 수, 전체 수)
+    ///   - onProgress: 파일 하나가 끝날 때마다(끝난 수, 전체 수, 방금 끝난 파일의 순번)
+    ///   - onFraction: 진행률을 아는 변환(영상 등)이 파일 하나 안에서 몇 %인지 알려줄 때(순번, 0~1)
     func run(skill: FileSkill, urls: [URL],
              onStarted: @escaping @Sendable (_ name: String) -> Void = { _ in },
-             onProgress: @escaping @Sendable (_ done: Int, _ total: Int) -> Void = { _, _ in }) async -> Report {
+             onProgress: @escaping @Sendable (_ done: Int, _ total: Int, _ finished: Int) -> Void = { _, _, _ in },
+             onFraction: @escaping @Sendable (_ index: Int, _ fraction: Double) -> Void = { _, _ in }) async -> Report {
         var report = Report()
         let total = urls.count
         var done = 0
@@ -65,6 +67,7 @@ final class FileJobRunner: @unchecked Sendable {
                 onStarted(url.lastPathComponent)
                 group.addTask(priority: .userInitiated) {
                     let cancellation = FileCancellation()
+                    cancellation.onFraction = { onFraction(position, $0) }
                     return await withTaskCancellationHandler {
                         await withCheckedContinuation { continuation in
                             Self.workQueue.async {
@@ -82,7 +85,7 @@ final class FileJobRunner: @unchecked Sendable {
             while let result = await group.next() {
                 done += 1
                 ordered.append(result)
-                onProgress(done, total)
+                onProgress(done, total, result.0)
                 addNext()
             }
             for (_, outcome) in ordered.sorted(by: { $0.0 < $1.0 }) {

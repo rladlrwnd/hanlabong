@@ -219,6 +219,8 @@ package final class FileFeatureController {
             progressCard.anchor = anchor
         }
         log.info("job start: skill=\(skill.id, privacy: .public) files=\(urls.count, privacy: .public)")
+        // 남은 시간을 재려고 파일 크기를 미리 본다(폴더는 0)
+        let sizes: [Int64] = urls.map { Int64((try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
 
         let task = Task { @MainActor [weak self, runner] in
             let report = await runner.run(
@@ -226,18 +228,27 @@ package final class FileFeatureController {
                 onStarted: { name in
                     Task { @MainActor in self?.jobs.update(id, current: name) }
                 },
-                onProgress: { done, total in
+                onProgress: { done, total, finishedFile in
                     Task { @MainActor in
                         guard let self else { return }
-                        self.jobs.update(id, done: done)
+                        self.jobs.update(id, done: done, finishedFile: finishedFile)
                         if self.wheelJob == id { self.wheel.progress(done: done, total: total) }
                     }
+                },
+                onFraction: { file, fraction in
+                    Task { @MainActor in self?.jobs.updateFraction(id, file: file, fraction: fraction) }
                 }
             )
+            if report.failures.isEmpty, report.canceled == 0, !report.outputs.isEmpty {
+                JobSpeedStore.record(skillID: skill.id, bytes: sizes.reduce(0, +), duration: Date().timeIntervalSince(started))
+            }
             self?.finish(id, skill: skill, inputCount: urls.count, started: started, report: report)
             DesktopPlacement.place(report.outputs, near: spot)
         }
-        jobs.begin(JobCenter.Job(id: id, title: skill.name, symbol: skill.symbol ?? "photo", total: urls.count, started: started)) {
+        var job = JobCenter.Job(id: id, title: skill.name, symbol: skill.symbol ?? "photo", total: urls.count, started: started)
+        job.sizes = sizes
+        job.pastSecondsPerByte = JobSpeedStore.secondsPerByte(for: skill.id)
+        jobs.begin(job) {
             task.cancel()
         }
 

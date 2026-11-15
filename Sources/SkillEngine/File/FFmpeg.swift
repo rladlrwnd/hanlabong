@@ -138,7 +138,15 @@ public enum FFmpeg {
             if let e = end { end = min(max(e, (start ?? 0) + 0.1), total) }
         }
         do {
-            _ = try run(ffmpeg, arguments(spec, input: input, output: output, start: start, end: end), cancellation: cancellation)
+            // -progress pipe:1: 표준 출력으로 "out_time_us=…"를 계속 내보낸다 → 바꿀 길이로 나눠서 몇 %인지
+            let length = max((end ?? total) - (start ?? 0), 0)
+            let args = ["-progress", "pipe:1"] + arguments(spec, input: input, output: output, start: start, end: end)
+            let parse: @Sendable (String) -> Void = { chunk in
+                for line in chunk.split(whereSeparator: \.isNewline) where line.hasPrefix("out_time_us=") {
+                    if let us = Double(line.dropFirst("out_time_us=".count)) { cancellation.report(us / 1_000_000 / length) }
+                }
+            }
+            _ = try run(ffmpeg, args, cancellation: cancellation, onOutput: length > 0 ? parse : nil)
         } catch {
             try? FileManager.default.removeItem(at: output)
             throw error
@@ -146,7 +154,8 @@ public enum FFmpeg {
     }
 
     /// 프로그램을 돌리고 표준 출력을 돌려준다. 실패하면 오류 출력 마지막 줄을 알려준다.
-    private static func run(_ executable: URL, _ arguments: [String], cancellation: FileCancellation) throws -> String {
+    private static func run(_ executable: URL, _ arguments: [String], cancellation: FileCancellation,
+                            onOutput: (@Sendable (String) -> Void)? = nil) throws -> String {
         let process = Process()
         process.executableURL = executable
         process.arguments = arguments
@@ -155,7 +164,14 @@ public enum FFmpeg {
         process.standardError = err
         process.standardInput = FileHandle.nullDevice
         let collected = OutputBox()
-        out.fileHandleForReading.readabilityHandler = { collected.append(out: $0.availableData) }
+        out.fileHandleForReading.readabilityHandler = { handle in
+            let data = handle.availableData
+            if let onOutput {
+                if let text = String(data: data, encoding: .utf8) { onOutput(text) }   // 진행 줄은 쌓지 않는다
+            } else {
+                collected.append(out: data)
+            }
+        }
         err.fileHandleForReading.readabilityHandler = { collected.append(err: $0.availableData) }
         try process.run()
         while process.isRunning {
