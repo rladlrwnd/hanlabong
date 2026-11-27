@@ -31,7 +31,7 @@ enum SearchablePDF {
         }
 
         return makePDF(title: url.deletingPathExtension().lastPathComponent) { context in
-            context.beginPDFPage([kCGPDFContextMediaBox as String: page] as CFDictionary)
+            beginPage(context, page)
             context.saveGState()
             context.scaleBy(x: pointsPerPixel, y: pointsPerPixel)
             // EXIF 회전을 그리기 변환으로 처리한다(픽셀을 돌려서 다시 만들면 JPEG를 다시 압축하게 된다)
@@ -52,7 +52,7 @@ enum SearchablePDF {
             for index in 0..<document.pageCount {
                 guard failure == nil, let page = document.page(at: index), let pageRef = page.pageRef else { continue }
                 let size = OCRSource.uprightSize(of: page)
-                context.beginPDFPage([kCGPDFContextMediaBox as String: CGRect(origin: .zero, size: size)] as CFDictionary)
+                beginPage(context, CGRect(origin: .zero, size: size))
                 context.saveGState()
                 context.concatenate(pageRef.getDrawingTransform(.mediaBox, rect: CGRect(origin: .zero, size: size), rotate: 0, preserveAspectRatio: true))
                 context.drawPDFPage(pageRef)
@@ -73,6 +73,13 @@ enum SearchablePDF {
         }
         if let failure { throw failure }
         return data
+    }
+
+    /// 쪽 크기를 정해서 새 쪽을 연다. 쪽 크기 사전 값은 CGRect를 담은 CFData여야 한다(CGRect를 그냥 넣으면 무시되고 레터 크기가 된다)
+    static func beginPage(_ context: CGContext, _ box: CGRect) {
+        var box = box
+        let data = Data(bytes: &box, count: MemoryLayout<CGRect>.size)
+        context.beginPDFPage([kCGPDFContextMediaBox as String: data as CFData] as CFDictionary)
     }
 
     /// 보이지 않는 글자를 OCR 상자 위치·너비에 맞춰 얹는다(PDF 뷰어의 선택·검색·복사가 이 글자를 쓴다)
@@ -106,5 +113,21 @@ enum SearchablePDF {
         draw(context)
         context.closePDF()
         return data as Data
+    }
+}
+
+/// 열어 둔 스캔 PDF에 글자 층을 얹을 때 쓰는 공개 도구(WordPro가 쓴다). 글자 인식은 이 맥 안의 Vision으로만.
+public enum ScanTextLayer {
+    /// 글자가 거의 없는(스캔한) 쪽 번호
+    public static func scannedPages(_ document: PDFDocument) -> [Int] {
+        (0..<document.pageCount).filter { PDFTextExtractor.letterCount(document.page(at: $0)?.string ?? "") < 3 }
+    }
+
+    /// 한 쪽짜리 PDF 데이터 → 같은 모양 + 보이지 않는 글자 층. 인식된 글자가 없으면 nil
+    public static func addText(toPage data: Data) throws -> Data? {
+        guard let document = PDFDocument(data: data), document.pageCount == 1 else { return nil }
+        let out = try SearchablePDF.fromPDF(document, title: "")
+        guard let check = PDFDocument(data: out), PDFTextExtractor.letterCount(check.page(at: 0)?.string ?? "") >= 3 else { return nil }
+        return out
     }
 }

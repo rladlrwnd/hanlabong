@@ -267,7 +267,7 @@ extension PDFSession {
     }
 
     static let assistantSystem = """
-    You are the assistant inside Hanlabong PDF, a PDF reader for university students.
+    You are the assistant inside the PDF area of Hanlabong WordPro, a PDF reader for university students.
     Decide what the user wants and return ONLY JSON:
     {"action":"answer|fill|set|find|goto","page":N,"values":{"<field id>":"text"},"reply":"..."}
     - set: the user says what to write in particular fields (e.g. "주소에 서울시 OO구를 써줘", "이름을 영어로 바꿔줘", "학과는 사진학과").

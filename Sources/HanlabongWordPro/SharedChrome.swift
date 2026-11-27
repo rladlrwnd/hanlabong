@@ -4,27 +4,49 @@ import SkillEngine
 import SwiftUI
 import ThinkingOrbsKit
 
+// 모든 영역(PDF·워드·한글·노트)이 같이 쓰는 화면 부품.
+// 세션 종류에 묶이지 않고 AssistantHost(WorkspaceContract.swift)만 보고 그린다.
+//
+// - AssistantBar(host:glass:)  아래 AI 요청칸(생각 구슬·빛 테두리·타자 효과·멈춤 단추)
+// - AgentChip(host:)           요청칸 안의 AI 고르기 칩
+// - GlassRail { RailIcon… }    오른쪽 세로 유리 막대(동그란 단추들을 담는 틀), 사이 줄은 RailDivider()
+// - RailIcon(symbol:active:badge:)  유리 막대의 동그란 단추 하나
+// - SmokyGlass(shape:)         짙은 연기빛 유리 바탕(.modifier로)
+// - GlowBorder(active:cornerRadius:)  일하는 동안 테두리를 도는 빛(.modifier로)
+// - TypewriterText(target:), StatusText(text:)
+
+/// 요청칸이 쓰는 스프링(제네릭 타입 안에는 static 저장 프로퍼티를 못 둬서 따로)
+enum AssistantSpring {
+    static let value = Animation.spring(response: 0.42, dampingFraction: 0.82)
+}
+
 /// 아래 가운데 AI 요청칸. 간단히 보기는 둥근 유리(+ 일하는 동안 테두리 빛), 자세히 보기는 지금 도구 줄 모양 그대로.
-struct AssistantBar: View {
-    @ObservedObject var session: PDFSession
+struct AssistantBar<Host: AssistantHost>: View {
+    @ObservedObject var host: Host
     var glass: Bool
     @State private var text = ""
     @FocusState private var focused: Bool
 
-    static let spring = Animation.spring(response: 0.42, dampingFraction: 0.82)
+    /// glass: true = 간단히 보기(둥근 유리 상자), false = 자세히 보기(도구 줄 모양)
+    init(host: Host, glass: Bool = true) {
+        self.host = host
+        self.glass = glass
+    }
+
+    static var spring: Animation { AssistantSpring.value }
 
     /// 상자 위쪽에 보일 글: AI 답(쓰는 동안 받은 데까지), 일하는 중이면 그 일
     private var shownReply: String? {
         if let status = statusLine { return status }
-        if let reply = session.assistantReply, !reply.isEmpty { return reply }
+        if let reply = host.assistantReply, !reply.isEmpty { return reply }
         return nil
     }
 
     /// 일하는 중 안내(답 글이 아직 없을 때): 생각 중… / 답을 쓰는 중… / 빈칸을 채우는 중…
     private var statusLine: String? {
-        if case .working(let what) = session.assistantPhase { return what }
-        if let reply = session.assistantReply, !reply.isEmpty, session.assistantPhase != .waiting { return nil }
-        switch session.assistantPhase {
+        if case .working(let what) = host.assistantPhase { return what }
+        if let reply = host.assistantReply, !reply.isEmpty, host.assistantPhase != .waiting { return nil }
+        switch host.assistantPhase {
         case .idle: return nil
         case .waiting: return L("생각 중…", "Thinking…")
         case .writing: return L("답을 쓰는 중…", "Writing…")
@@ -51,8 +73,8 @@ struct AssistantBar: View {
                             }
                             .font(.system(size: 13.5))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            if !session.assistantPhase.busy {
-                                Button { withAnimation(Self.spring) { session.assistantReply = nil } } label: {
+                            if !host.assistantPhase.busy {
+                                Button { withAnimation(Self.spring) { host.assistantReply = nil } } label: {
                                     Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).frame(width: 20, height: 20)
                                 }
                                 .buttonStyle(.plain).foregroundStyle(.secondary)
@@ -65,16 +87,16 @@ struct AssistantBar: View {
                     row.padding(.horizontal, 8).frame(height: 48)
                 }
                 .modifier(SmokyGlass(shape: RoundedRectangle(cornerRadius: 24, style: .continuous)))
-                .modifier(GlowBorder(active: session.assistantPhase.busy, cornerRadius: 24))
+                .modifier(GlowBorder(active: host.assistantPhase.busy, cornerRadius: 24))
             .frame(maxWidth: 580)
             .animation(Self.spring, value: shownReply == nil)
-            .animation(Self.spring, value: session.assistantPhase)
+            .animation(Self.spring, value: host.assistantPhase)
         } else {
             VStack(spacing: 0) {
-                if let reply = session.assistantReply {
+                if let reply = host.assistantReply {
                     HStack(alignment: .top) {
                         Text(reply).font(.callout).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
-                        Button { session.assistantReply = nil } label: { Image(systemName: "xmark") }.buttonStyle(.plain).foregroundStyle(.secondary)
+                        Button { host.assistantReply = nil } label: { Image(systemName: "xmark") }.buttonStyle(.plain).foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 12).padding(.vertical, 8)
                     .background(Color(white: 0.15))
@@ -84,7 +106,7 @@ struct AssistantBar: View {
         }
     }
 
-    private var row: some View { rowContent.task { await session.refreshAgents() } }
+    private var row: some View { rowContent.task { await host.refreshAgents() } }
 
     private var rowContent: some View {
         HStack(spacing: 8) {
@@ -94,10 +116,10 @@ struct AssistantBar: View {
                 .font(.system(size: glass ? 14 : 13))
                 .focused($focused)
                 .onSubmit(send)
-                .disabled(session.document == nil)
-            AgentChip(session: session)
-            if session.assistantPhase.busy {
-                Button { session.stopAssistant() } label: { Image(systemName: "stop.fill").font(.system(size: 11, weight: .bold)).frame(width: 28, height: 28) }
+                .disabled(!host.canAsk)
+            AgentChip(host: host)
+            if host.assistantPhase.busy {
+                Button { host.stopAssistant() } label: { Image(systemName: "stop.fill").font(.system(size: 11, weight: .bold)).frame(width: 28, height: 28) }
                     .buttonStyle(.plain).background(Circle().fill(.white.opacity(0.15)))
                     .help(L("그만두기", "Stop"))
             } else {
@@ -106,7 +128,7 @@ struct AssistantBar: View {
                 }
                 .buttonStyle(.plain)
                 .background(Circle().fill(text.isEmpty ? Color.white.opacity(0.18) : accent))
-                .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty || session.document == nil)
+                .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty || !host.canAsk)
                 .help(L("보내기 (⏎)", "Send (⏎)"))
             }
         }
@@ -120,11 +142,11 @@ struct AssistantBar: View {
     }
 
     private var orbKey: Int {
-        switch session.assistantPhase { case .idle: return 0; case .waiting: return 1; case .writing: return 2; case .working: return 3 }
+        switch host.assistantPhase { case .idle: return 0; case .waiting: return 1; case .writing: return 2; case .working: return 3 }
     }
 
     @ViewBuilder private var orbContent: some View {
-        switch session.assistantPhase {
+        switch host.assistantPhase {
         case .idle:
             Image(systemName: "sparkle").font(.system(size: 15, weight: .semibold)).foregroundStyle(accent)
         case .waiting:
@@ -137,11 +159,11 @@ struct AssistantBar: View {
     }
 
     private var placeholder: String {
-        switch session.assistantPhase {
+        switch host.assistantPhase {
         case .waiting: return L("AI가 읽는 중…", "AI is reading…")
         case .writing: return L("AI가 쓰는 중…", "AI is writing…")
         case .working(let what): return what
-        case .idle: return L("AI에게 부탁하기 · 예: 내 정보로 채워줘, 이 쪽 요약해줘, 해설로 가줘", "Ask AI · e.g. fill this with my info, summarize this page")
+        case .idle: return host.askPlaceholder
         }
     }
 
@@ -149,7 +171,7 @@ struct AssistantBar: View {
         let request = text
         guard !request.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         text = ""
-        session.ask(request)
+        host.ask(request)
     }
 
 }
@@ -184,45 +206,23 @@ struct RailIcon: View {
     }
 }
 
-/// 내 정보: 채우기에 쓸 이름·학교·연락처 등. 이 맥에만 저장
-struct ProfileEditor: View {
-    @State var profile: UserProfile
-    let save: (UserProfile) -> Void
-    let close: () -> Void
+/// 오른쪽 세로 유리 막대: 안에 RailIcon(을 품은 단추·메뉴)들을 세로로 담는다. 모양은 PDF 간단히 보기 그대로
+struct GlassRail<Content: View>: View {
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(L("내 정보", "My info")).font(.title3.bold())
-            Text(L("계약서·신청서의 빈칸을 채울 때 써요. 이 맥에만 저장돼요. 클라우드 AI를 쓰면 채울 때 이 정보가 그 AI 서비스로 가요.",
-                   "Used to fill forms. Saved only on this Mac. With a cloud AI, this info is sent to that service when filling."))
-                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            ScrollView {
-                VStack(spacing: 6) {
-                    ForEach($profile.entries) { $entry in
-                        HStack(spacing: 8) {
-                            TextField(L("항목", "Item"), text: $entry.key).textFieldStyle(.roundedBorder).frame(width: 120)
-                            TextField(L("값", "Value"), text: $entry.value).textFieldStyle(.roundedBorder)
-                            Button { profile.entries.removeAll { $0.id == entry.id } } label: { Image(systemName: "minus.circle") }
-                                .buttonStyle(.plain).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-            .frame(height: 340)
-            HStack {
-                Button { profile.entries.append(ProfileEntry(key: "")) } label: { Label(L("항목 더하기", "Add item"), systemImage: "plus") }
-                Spacer()
-                Button(L("취소", "Cancel"), action: close).keyboardShortcut(.cancelAction)
-                Button(L("저장", "Save")) {
-                    profile.entries.removeAll { $0.key.trimmingCharacters(in: .whitespaces).isEmpty }
-                    save(profile); close()
-                }
-                .keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent)
-            }
-        }
-        .padding(20)
-        .frame(width: 460)
+        VStack(spacing: 4) { content }
+            .padding(5)
+            .modifier(SmokyGlass(shape: Capsule()))
+            .shadow(color: .black.opacity(0.22), radius: 14, y: 5)
     }
+}
+
+/// 유리 막대 안의 짧은 가로 줄(단추 묶음 나누기)
+struct RailDivider: View {
+    var body: some View { Divider().frame(width: 22).padding(.vertical, 2) }
 }
 
 /// 짙은 연기빛 유리: PDF는 거의 흰 종이라 맑은 유리는 하얗게 비쳐서 안의 글자가 안 보인다.
@@ -315,16 +315,18 @@ struct GlowBorder: ViewModifier {
 }
 
 /// 요청칸의 AI 고르기 칩(한라봉 팝업처럼 캐릭터 얼굴 + 이름). 자동 = 한라봉 설정을 따름
-struct AgentChip: View {
-    @ObservedObject var session: PDFSession
+struct AgentChip<Host: AssistantHost>: View {
+    @ObservedObject var host: Host
     @State private var hovering = false
+
+    init(host: Host) { self.host = host }
 
     var body: some View {
         Menu {
-            Button { session.pickAgent(nil) } label: {
-                Label(L("자동 (한라봉 설정대로)", "Auto (Hanlabong settings)"), systemImage: session.assistantAgentID == nil ? "checkmark" : "sparkle")
+            Button { host.pickAgent(nil) } label: {
+                Label(L("자동 (한라봉 설정대로)", "Auto (Hanlabong settings)"), systemImage: host.assistantAgentID == nil ? "checkmark" : "sparkle")
             }
-            let local = session.agentChoices.filter(\.isLocal), cloud = session.agentChoices.filter { !$0.isLocal }
+            let local = host.agentChoices.filter(\.isLocal), cloud = host.agentChoices.filter { !$0.isLocal }
             if !local.isEmpty {
                 Section(L("이 맥", "This Mac")) {
                     ForEach(local) { agent in pick(agent, detail: agent.detail) }
@@ -335,16 +337,16 @@ struct AgentChip: View {
                     ForEach(cloud) { agent in pick(agent, detail: agent.model) }
                 }
             }
-            if session.agentChoices.isEmpty {
+            if host.agentChoices.isEmpty {
                 Text(L("쓸 수 있는 AI가 없어요 · Ollama를 켜거나 한라봉 설정에서 API 키를 넣어줘", "No AI available"))
             }
             Divider()
-            Button(L("목록 새로 고치기", "Refresh list")) { Task { await session.refreshAgents() } }
+            Button(L("목록 새로 고치기", "Refresh list")) { Task { await host.refreshAgents() } }
         } label: {
             HStack(spacing: 5) {
-                if let agent = session.currentAgent {
-                    BotAvatar(type: agent.avatar, state: session.assistantPhase.busy ? .working : .default, size: 18,
-                              paused: !session.assistantPhase.busy, shading: .smooth, interactive: false)
+                if let agent = host.currentAgent {
+                    BotAvatar(type: agent.avatar, state: host.assistantPhase.busy ? .working : .default, size: 18,
+                              paused: !host.assistantPhase.busy, shading: .smooth, interactive: false)
                         .frame(width: 20, height: 20)
                     Text(agent.name).font(.system(size: 11.5, weight: .semibold)).lineLimit(1).truncationMode(.middle)
                         .frame(maxWidth: 110, alignment: .leading).fixedSize(horizontal: true, vertical: false)
@@ -352,7 +354,7 @@ struct AgentChip: View {
                     Image(systemName: "sparkle").font(.system(size: 11, weight: .semibold))
                     Text(L("AI 없음", "No AI")).font(.system(size: 11.5, weight: .semibold))
                 }
-                if session.assistantAgentID == nil {
+                if host.assistantAgentID == nil {
                     Text(L("자동", "Auto")).font(.system(size: 9.5, weight: .bold)).foregroundStyle(.secondary)
                 }
                 Image(systemName: "chevron.down").font(.system(size: 8.5, weight: .bold)).foregroundStyle(.secondary)
@@ -369,13 +371,13 @@ struct AgentChip: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .onHover { hovering = $0 }
-        .disabled(session.assistantPhase.busy)
+        .disabled(host.assistantPhase.busy)
         .help(L("요청칸이 쓸 AI 고르기", "Choose the AI for requests"))
     }
 
     private func pick(_ agent: Agent, detail: String) -> some View {
-        Button { session.pickAgent(agent) } label: {
-            if session.assistantAgentID == agent.id { Label(agent.name, systemImage: "checkmark") } else { Text(agent.name) }
+        Button { host.pickAgent(agent) } label: {
+            if host.assistantAgentID == agent.id { Label(agent.name, systemImage: "checkmark") } else { Text(agent.name) }
         }
     }
 }

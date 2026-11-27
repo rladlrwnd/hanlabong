@@ -85,7 +85,7 @@ final class PDFSession: ObservableObject {
     private var lockedDocument: PDFDocument?
     private var pendingURL: URL?
 
-    var title: String { url?.lastPathComponent ?? "Hanlabong PDF" }
+    var title: String { url?.lastPathComponent ?? "Hanlabong WordPro" }
     var canUndo: Bool { !undoStack.isEmpty }
     var canRedo: Bool { !redoStack.isEmpty }
 
@@ -94,6 +94,16 @@ final class PDFSession: ObservableObject {
     /// PDF는 그대로, 한글(.hwp·.hwpx)·Word 등 문서는 PDF로 바꿔서, 사진은 한 쪽짜리로 연다.
     /// 창 하나에 문서 하나(여러 개면 창이 따로 뜬다). 합치기는 "뒤에 붙이기"로.
     func open(_ urls: [URL]) {
+        var urls = urls
+        if let openElsewhere {
+            // 워드·한글·노트처럼 다른 영역의 파일은 이 PDF 창에서 PDF로 바꾸지 않고 그 영역 창으로 넘긴다
+            let foreign = urls.filter { (DocumentArea.of($0) ?? .pdf) != .pdf }
+            if !foreign.isEmpty {
+                urls.removeAll { (DocumentArea.of($0) ?? .pdf) != .pdf }
+                // 이 창 화면(끌어 놓기 처리 중)을 바로 갈아 끼우지 않게 한 박자 뒤에
+                DispatchQueue.main.async { openElsewhere(foreign) }
+            }
+        }
         guard let first = urls.first else { return }
         if let openElsewhere {
             // 창마다 문서 하나: 이미 문서가 열린 창이면 새 창에서, 여러 개면 첫 파일만 여기 나머지는 각자 새 창에
@@ -163,6 +173,39 @@ final class PDFSession: ObservableObject {
         fitsPage = true
         onDocumentShown?(doc)
         DispatchQueue.main.async { self.fitPage() }
+        recognizeScannedPages(doc)
+    }
+
+    /// 스캔한 쪽(글자가 없는 쪽)은 열자마자 이 맥 안에서 글자를 인식해 보이지 않는 글자 층을 얹는다.
+    /// 그래야 글자 선택·찾기·AI 요청·빈칸 채우기가 스캔 문서에서도 된다. 모양은 그대로고, 주석이 있는 쪽은 건드리지 않는다.
+    private func recognizeScannedPages(_ doc: PDFDocument) {
+        let targets = ScanTextLayer.scannedPages(doc).prefix(200).filter { (doc.page(at: $0)?.annotations ?? []).isEmpty }
+        guard !targets.isEmpty else { return }
+        message = L("스캔한 문서라 글자를 인식하는 중… (\(targets.count)쪽)", "Scanned document — recognizing text… (\(targets.count) pages)")
+        Task { @MainActor [weak self] in
+            var done = 0
+            for index in targets {
+                guard let self, self.document === doc, let page = doc.page(at: index), page.annotations.isEmpty else { return }
+                // 그 쪽만 떼어 낸 한 쪽 PDF(데이터라 백그라운드로 넘겨도 안전하다)
+                let single = PDFDocument()
+                guard let copy = page.copy() as? PDFPage else { continue }
+                single.insert(copy, at: 0)
+                guard let data = single.dataRepresentation() else { continue }
+                let result = await Task.detached(priority: .userInitiated) { try? ScanTextLayer.addText(toPage: data) }.value
+                guard self.document === doc, doc.page(at: index) === page, page.annotations.isEmpty,
+                      let result, let newPage = PDFDocument(data: result)?.page(at: 0) else { continue }
+                let wasShowing = self.view?.currentPage === page
+                doc.removePage(at: index)
+                doc.insert(newPage, at: index)
+                if wasShowing { self.view?.go(to: newPage) }
+                done += 1
+            }
+            guard let self, self.document === doc else { return }
+            self.view?.layoutDocumentView()
+            self.message = done > 0
+                ? L("스캔한 쪽 \(done)쪽의 글자를 인식했어요. 이제 글자 선택·찾기·AI 요청이 돼요", "Recognized text on \(done) scanned pages")
+                : L("스캔한 쪽에서 글자를 찾지 못했어요", "No text found on the scanned pages")
+        }
     }
 
     private func reset() {
@@ -366,5 +409,13 @@ final class PDFSession: ObservableObject {
             message = L("\(outputs.count)개 파일로 저장했어요", "Saved \(outputs.count) files") + note
         }
         dirty = false
+    }
+}
+
+/// 아래 AI 요청칸·모델 칩(SharedChrome.swift)이 PDF 영역을 그릴 때 쓰는 것
+extension PDFSession: AssistantHost {
+    var canAsk: Bool { document != nil }
+    var askPlaceholder: String {
+        L("AI에게 부탁하기 · 예: 내 정보로 채워줘, 이 쪽 요약해줘, 해설로 가줘", "Ask AI · e.g. fill this with my info, summarize this page")
     }
 }

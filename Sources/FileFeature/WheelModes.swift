@@ -12,9 +12,12 @@ extension WheelLayout {
         return WheelItem(id: "develop", title: L("현상", "Develop"), symbol: "camera.aperture", children: presets + [more])
     }
 
-    /// PDF를 Hanlabong PDF에서 열기
-    package static let pdfAddonItem = WheelItem(id: "pdf-addon", title: "Hanlabong PDF", symbol: "doc.richtext",
-                                                subtitle: L("보기·주석·나누기·암호", "View · annotate · split · password"), edit: .addon(.pdf))
+    /// PDF·워드·한글·노트 문서를 Hanlabong WordPro에서 열기. id는 저장된 설정과 이어지게 옛 이름 그대로 둔다.
+    package static let pdfAddonItem = WheelItem(id: "pdf-addon", title: "WordPro", symbol: "doc.richtext",
+                                                subtitle: L("PDF·워드·한글 문서 보기와 편집", "View and edit PDF, Word and Hangul documents"), edit: .addon(.wordPro))
+
+    /// WordPro가 여는 문서 확장자(PDF 말고)
+    package static let wordProDocumentExtensions: Set<String> = ["docx", "doc", "rtf", "odt", "epub", "hwp", "hwpx", "md", "markdown", "txt", "html", "htm"]
 
     /// 도구 휠: 파일 종류에 맞는 손질 도구(편집·회전·반전·용량 줄이기 등)
     package static func tools(forDraggedFileExtensions extensions: [String], ai: AIDestination? = nil) -> WheelLayout {
@@ -53,6 +56,9 @@ extension WheelLayout {
             ], mode: .tools)
         }
         if kinds.contains(.text) {
+            if extensions.contains(where: { wordProDocumentExtensions.contains($0.lowercased()) }) {
+                return WheelLayout(slots: [whatIsItem(ai), pdfAddonItem], mode: .tools)
+            }
             return WheelLayout(slots: [whatIsItem(ai)], mode: .tools)
         }
         return WheelLayout(slots: [], emptyMessage: L("이 파일에 쓸 도구가 없어요 · ⌃ 동작 휠", "No tools for this file · ⌃ Actions"), mode: .tools)

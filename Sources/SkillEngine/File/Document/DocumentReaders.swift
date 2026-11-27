@@ -2,9 +2,9 @@ import AppKit
 import Foundation
 
 /// What is it?이 읽는 여러 문서 형식 → 글. 사진·영상·소리를 뺀 파일은 여기서 글을 꺼내 본다.
-/// - Word(.docx·.doc)·RTF·OpenDocument: macOS 문서 읽기(NSAttributedString)
+/// - Word(.docx): DocxReader로 직접 뜯어 읽는다. 옛 Word(.doc)·RTF·OpenDocument: macOS 문서 읽기(NSAttributedString)
 /// - HTML: 태그를 걷어내고 글만(스크립트·스타일 제외). 웹 엔진을 띄우지 않는다
-/// - PowerPoint(.pptx)·Excel(.xlsx)·한글(.hwpx): zip 안의 XML에서 글자만
+/// - 한글(.hwpx): HwpxReader. PowerPoint(.pptx)·Excel(.xlsx): zip 안의 XML에서 글자만
 /// - 옛 한글(.hwp): HwpReader로 문단 글자만
 /// - 그 밖: 글 파일로 읽어 본다(UTF-8·UTF-16·EUC-KR). 글이 아니면(0 바이트가 섞임) 거절
 public enum DocumentReaders {
@@ -27,8 +27,13 @@ public enum DocumentReaders {
     static func text(of url: URL) -> String? {
         let ext = url.pathExtension.lowercased()
         if richExtensions.contains(ext) {
+            // .docx는 직접 뜯어 읽어서 표가 칸마다 한 줄로 쪼개지지 않게 한다
+            if ext == "docx" || (ext == "doc" && hasZipSignature(url)), let docx = DocxReader.read(url) {
+                return paragraphText(docx.paragraphs)
+            }
             return (try? NSAttributedString(url: url, options: [:], documentAttributes: nil))?.string
         }
+        if ext == "hwpx", let hwpx = HwpxReader.read(url) { return paragraphText(hwpx.paragraphs) }
         if zipXMLExtensions.contains(ext) { return zipXMLText(url, ext: ext) }
         if ext == "hwp" { return (try? HwpReader.paragraphs(url))?.joined(separator: "\n") }
         guard let data = try? Data(contentsOf: url) else { return nil }
@@ -38,6 +43,19 @@ public enum DocumentReaders {
         guard let decoded = WhatIsText.decode(data) else { return nil }
         if htmlExtensions.contains(ext) || looksLikeHTML(decoded) { return htmlText(decoded) }
         return decoded
+    }
+
+    /// 읽어 낸 문단들 → 글(문단은 줄바꿈으로, 표는 칸을 탭·줄을 줄바꿈으로, 그림만 있는 덩어리는 뺀다)
+    static func paragraphText(_ paragraphs: [DocumentParagraph]) -> String? {
+        let text = paragraphs.map(\.text).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }.joined(separator: "\n")
+        return text.isEmpty ? nil : text
+    }
+
+    /// 파일이 zip(PK\u{3}\u{4})으로 시작하는지: 확장자가 .doc인데 속은 docx인 파일을 가려낸다
+    static func hasZipSignature(_ url: URL) -> Bool {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        return (try? handle.read(upToCount: 4)) == Data([0x50, 0x4B, 0x03, 0x04])
     }
 
     // MARK: HTML

@@ -91,7 +91,7 @@ struct PDFWindowView: View {
                     if !detailed, session.document != nil { readerOverlay }
                 }
             }
-            if detailed, session.document != nil { AssistantBar(session: session, glass: false) }
+            if detailed, session.document != nil { AssistantBar(host: session, glass: false) }
             if detailed { statusBar }
         }
         .background(Color(white: 0.16))
@@ -183,7 +183,7 @@ struct PDFWindowView: View {
             VStack {
                 if session.tool != .select { toolHint.transition(.move(edge: .top).combined(with: .opacity)) }
                 Spacer()
-                AssistantBar(session: session, glass: true)
+                AssistantBar(host: session, glass: true)
                     .padding(.horizontal, 120)
                     .padding(.bottom, 16)
             }
@@ -194,7 +194,7 @@ struct PDFWindowView: View {
 
     /// 오른쪽 유리 기둥
     private var rail: some View {
-        VStack(spacing: 4) {
+        GlassRail {
             viewMenu(label: RailIcon(symbol: session.bookLayout ? "book" : "rectangle.portrait"), plain: true)
                 .help(L("보기 · 한 장씩/책처럼 · 확대", "View · layout · zoom"))
             Button { showContents.toggle() } label: {
@@ -207,14 +207,11 @@ struct PDFWindowView: View {
                 .help(L("넣기 · 글자·서명·메모·입력칸", "Insert · text, signature, note, field"))
             fillMenu(label: RailIcon(symbol: "text.badge.checkmark"))
                 .help(L("빈칸 채우기 · 내 정보", "Fill in · my info"))
-            Divider().frame(width: 22).padding(.vertical, 2)
+            RailDivider()
             Button { session.mode = .detailed } label: { RailIcon(symbol: "slider.horizontal.3") }
                 .buttonStyle(.plain)
                 .help(L("자세히 보기 — 표시·그리기·저장 (⌘E)", "Detailed view — markup, save (⌘E)"))
         }
-        .padding(5)
-        .modifier(SmokyGlass(shape: Capsule()))
-        .shadow(color: .black.opacity(0.22), radius: 14, y: 5)
     }
 
     /// 오른쪽 아래: 되돌아가기 · 건너가기 · 쪽수
@@ -661,7 +658,7 @@ struct PDFWindowView: View {
     private var empty: some View {
         VStack(spacing: 12) {
             Image(systemName: "doc.richtext").font(.system(size: 44, weight: .light))
-            Text(L("한라봉 휠 ⌘ › Hanlabong PDF에 놓거나, 여기로 끌어 놓아요 · PDF·한글·Word·사진", "Drop on Hanlabong wheel ⌘ › Hanlabong PDF, or drag here · PDF, Hangul, Word, photos"))
+            Text(L("한라봉 휠 ⌘ › Hanlabong WordPro에 놓거나, 여기로 끌어 놓아요 · PDF·한글·Word·노트·사진", "Drop on Hanlabong wheel ⌘ › Hanlabong WordPro, or drag here · PDF, Hangul, Word, notes, photos"))
                 .foregroundStyle(.secondary)
             Button(L("파일 열기…", "Open…")) {
                 let panel = NSOpenPanel()

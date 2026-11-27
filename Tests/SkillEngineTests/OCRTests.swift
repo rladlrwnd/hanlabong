@@ -104,7 +104,7 @@ struct OCRTests {
         let data = try executor.run(DefaultFileSkills.imageToSearchablePDF, input: url).data
         let page = try #require(PDFDocument(data: data)?.page(at: 0))
         let box = page.bounds(for: .mediaBox)
-        #expect(box.height > box.width)                                             // 세로 쪽
+        #expect(box.width > box.height)                                             // 눕혀 찍은(방향 6) 그림을 똑바로 세운 모양 = 가로로 긴 글 그림
         expectReadsTheLines(try readPageAsImage(page), "세로 PDF 속 그림:")           // 옆으로 눕지 않았다
         expectReadsTheLines(page.string ?? "", "세로 PDF 글자 층:")
     }

@@ -82,19 +82,25 @@ let package = Package(
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .executableTarget(
-            name: "HanlabongPDF",
+            name: "HanlabongWordPro",
             dependencies: [
                 "AppCore", "SkillEngine",
                 .product(name: "ThinkingOrbsKit", package: "ThinkingOrbsKit"),
                 .product(name: "BotAvatarsKit", package: "BotAvatarsKit"),
             ],
-            path: "Sources/HanlabongPDF",
+            path: "Sources/HanlabongWordPro",
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
             name: "FileFeatureTests",
             dependencies: ["FileFeature", "SkillEngine", "AppCore"],
             path: "Tests/FileFeatureTests"
+        ),
+        .testTarget(
+            name: "HanlabongWordProTests",
+            dependencies: ["HanlabongWordPro", "SkillEngine", "AppCore"],
+            path: "Tests/HanlabongWordProTests",
+            swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
             name: "SkillEngineTests",

@@ -4,20 +4,28 @@ import SkillEngine
 
 /// 한라봉 애드온(따로 된 앱). 휠에서 파일을 넘겨 연다.
 package enum Addon: String, Equatable, Sendable, CaseIterable {
-    case developing, pdf
+    case developing, wordPro
 
     /// 식별자는 한라봉 본체처럼 예전 이름(dragedit) 흔적을 남긴다
     package var bundleIdentifier: String {
         switch self {
         case .developing: return "app.dragedit.Developing"
-        case .pdf: return "app.dragedit.PDF"
+        case .wordPro: return "app.dragedit.PDF"   // 옛 Hanlabong PDF와 같은 식별자(권한·설정·기본 앱 지정이 이어진다)
+        }
+    }
+
+    /// 업데이트 전에 깔려 있던 옛 앱 이름(새 이름이 없을 때만 찾는다)
+    var legacyAppName: String? {
+        switch self {
+        case .developing: return nil
+        case .wordPro: return "Hanlabong PDF"
         }
     }
 
     package var appName: String {
         switch self {
         case .developing: return "Hanlabong Developing"
-        case .pdf: return "Hanlabong PDF"
+        case .wordPro: return "Hanlabong WordPro"
         }
     }
 }
@@ -26,8 +34,11 @@ package enum Addon: String, Equatable, Sendable, CaseIterable {
 enum AddonLauncher {
     /// 한라봉 바로 옆(같은 폴더: 응용 프로그램 또는 개발용 build 폴더)에 있는 걸 먼저, 없으면 맥이 아는 곳에서 찾는다
     static func appURL(_ addon: Addon) -> URL? {
-        let sibling = Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("\(addon.appName).app")
-        if FileManager.default.fileExists(atPath: sibling.path) { return sibling }
+        let folder = Bundle.main.bundleURL.deletingLastPathComponent()
+        for name in [addon.appName] + (addon.legacyAppName.map { [$0] } ?? []) {
+            let sibling = folder.appendingPathComponent("\(name).app")
+            if FileManager.default.fileExists(atPath: sibling.path) { return sibling }
+        }
         return NSWorkspace.shared.urlForApplication(withBundleIdentifier: addon.bundleIdentifier)
     }
 

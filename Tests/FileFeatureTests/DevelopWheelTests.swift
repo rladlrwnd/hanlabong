@@ -15,7 +15,14 @@ struct DevelopWheelTests {
     }
 
     @Test func pdfToolsOfferTheAddon() {
-        #expect(WheelLayout.tools(forDraggedFileExtensions: ["pdf"]).slots.compactMap { $0 }.contains { $0.edit == .addon(.pdf) })
+        #expect(WheelLayout.tools(forDraggedFileExtensions: ["pdf"]).slots.compactMap { $0 }.contains { $0.edit == .addon(.wordPro) })
+    }
+
+    @Test func documentToolsOfferWordPro() {
+        for ext in ["docx", "doc", "rtf", "odt", "hwp", "hwpx", "md", "txt", "html"] {
+            #expect(WheelLayout.tools(forDraggedFileExtensions: [ext]).slots.compactMap { $0 }.contains { $0.edit == .addon(.wordPro) }, "\(ext)")
+        }
+        #expect(!WheelLayout.tools(forDraggedFileExtensions: ["swift"]).slots.compactMap { $0 }.contains { $0.edit == .addon(.wordPro) })
     }
 
     @Test func presetStoreFillsMissingSlotsAndSaves() throws {

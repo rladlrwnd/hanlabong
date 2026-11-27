@@ -84,7 +84,8 @@ public final class FileSkillExecutor: @unchecked Sendable {
             let source: RichDocument
             if kind == .pdf {
                 let extracted = try readPDF(input, cancellation: cancellation)
-                source = RichDocument(title: extracted.title ?? input.deletingPathExtension().lastPathComponent, paragraphs: extracted.paragraphs)
+                source = RichDocument(title: extracted.title ?? input.deletingPathExtension().lastPathComponent, paragraphs: extracted.paragraphs,
+                                      pageSize: extracted.pageSize)
             } else {
                 source = try RichDocumentReader.read(input)
             }

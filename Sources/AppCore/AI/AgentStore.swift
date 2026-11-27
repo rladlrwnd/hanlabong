@@ -14,8 +14,8 @@ package enum AIFeature: String, CaseIterable, Identifiable, Sendable {
         case .skillAuthoring: return L("스킬 만들기", "Create skill")
         case .ocrTypoFix: return L("OCR 오타수정 (파일)", "OCR typo fix (files)")
         case .whatIs: return L("What is it? (요약·심층 분석)", "What is it? (summary · deep dive)")
-        case .bookParts: return L("책 파트 나누기 (Hanlabong PDF)", "Split books into parts (Hanlabong PDF)")
-        case .pdfAssistant: return L("PDF 도우미 · 빈칸 채우기 (Hanlabong PDF)", "PDF assistant · form filling (Hanlabong PDF)")
+        case .bookParts: return L("책 파트 나누기 (Hanlabong WordPro)", "Split books into parts (Hanlabong WordPro)")
+        case .pdfAssistant: return L("PDF 도우미 · 빈칸 채우기 (Hanlabong WordPro)", "PDF assistant · form filling (Hanlabong WordPro)")
         }
     }
 

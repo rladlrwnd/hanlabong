@@ -15,7 +15,7 @@ WORK="build/pkg"
 rm -rf "$WORK" && mkdir -p "$WORK/root/Applications" "$WORK/resources"
 cp -R build/Hanlabong.app "$WORK/root/Applications/"
 # 애드온은 따로 된 구성요소 pkg로: 설치 마법사의 "사용자화"에서 체크해서 고른다
-for addon in "Hanlabong Developing" "Hanlabong PDF"; do
+for addon in "Hanlabong Developing" "Hanlabong WordPro"; do
   mkdir -p "$WORK/addon-$addon/Applications"
   cp -R "build/$addon.app" "$WORK/addon-$addon/Applications/"
 done
@@ -43,11 +43,24 @@ SH
 chmod +x "$WORK/scripts/postinstall"
 pkgbuild --root "$WORK/root" --component-plist "$WORK/components.plist" --scripts "$WORK/scripts" \
   --identifier "$IDENTIFIER.pkg" --version "$VERSION" --install-location / "$WORK/Hanlabong-component.pkg"
-for pair in "Hanlabong Developing:app.dragedit.Developing:Developing" "Hanlabong PDF:app.dragedit.PDF:PDF"; do
+# WordPro 설치 전: 옛 Hanlabong PDF 앱을 끄고 지운다(식별자가 같아 둘 다 있으면 맥이 헷갈린다)
+mkdir -p "$WORK/scripts-wordpro"
+cat > "$WORK/scripts-wordpro/preinstall" <<'SH'
+#!/bin/bash
+OLD="/Applications/Hanlabong PDF.app"
+pkill -x HanlabongPDF 2>/dev/null || true
+sleep 0.5
+rm -rf "$OLD"
+exit 0
+SH
+chmod +x "$WORK/scripts-wordpro/preinstall"
+for pair in "Hanlabong Developing:app.dragedit.Developing:Developing" "Hanlabong WordPro:app.dragedit.PDF:WordPro"; do
   IFS=: read -r name id short <<< "$pair"
   pkgbuild --analyze --root "$WORK/addon-$name" "$WORK/addon-$short.plist" >/dev/null
   /usr/libexec/PlistBuddy -c "Set :0:BundleIsRelocatable false" "$WORK/addon-$short.plist"
-  pkgbuild --root "$WORK/addon-$name" --component-plist "$WORK/addon-$short.plist" \
+  SCRIPTS_ARG=()
+  if [ "$short" = "WordPro" ]; then SCRIPTS_ARG=(--scripts "$WORK/scripts-wordpro"); fi
+  pkgbuild --root "$WORK/addon-$name" --component-plist "$WORK/addon-$short.plist" ${SCRIPTS_ARG[@]+"${SCRIPTS_ARG[@]}"} \
     --identifier "$id.pkg" --version "$VERSION" --install-location / "$WORK/$short-component.pkg"
 done
 
@@ -73,12 +86,12 @@ cat > "$WORK/distribution.xml" <<XML
   <choice id="developing" title="Hanlabong Developing" description="애드온 · 라이트룸처럼 사진 현상 · Add-on: develop photos like Lightroom" start_selected="true">
     <pkg-ref id="app.dragedit.Developing.pkg"/>
   </choice>
-  <choice id="pdf" title="Hanlabong PDF" description="애드온 · PDF 보기·주석·나누기·암호 · Add-on: view, annotate, split, protect PDFs" start_selected="true">
+  <choice id="pdf" title="Hanlabong WordPro" description="애드온 · PDF·워드·한글 문서 보기와 편집 · Add-on: view and edit PDF, Word and Hangul documents" start_selected="true">
     <pkg-ref id="app.dragedit.PDF.pkg"/>
   </choice>
   <pkg-ref id="$IDENTIFIER.pkg" version="$VERSION" onConclusion="none">Hanlabong-component.pkg</pkg-ref>
   <pkg-ref id="app.dragedit.Developing.pkg" version="$VERSION" onConclusion="none">Developing-component.pkg</pkg-ref>
-  <pkg-ref id="app.dragedit.PDF.pkg" version="$VERSION" onConclusion="none">PDF-component.pkg</pkg-ref>
+  <pkg-ref id="app.dragedit.PDF.pkg" version="$VERSION" onConclusion="none">WordPro-component.pkg</pkg-ref>
 </installer-gui-script>
 XML
 

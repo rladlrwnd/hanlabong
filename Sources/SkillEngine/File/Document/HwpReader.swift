@@ -196,6 +196,9 @@ struct CompoundFile {
         walk(root.child, prefix: "")
     }
 
+    /// 칸(스트림) 경로 목록(그림 찾기용)
+    var streamNames: [String] { Array(streams.keys) }
+
     func stream(_ path: String) -> Data? {
         guard let (start, size) = streams[path], size <= data.count else { return nil }
         if size < miniCutoff {
@@ -229,11 +232,12 @@ struct CompoundFile {
     }
 }
 
-private extension Data {
+extension Data {
     func uint16(at offset: Int) -> UInt16 {
         guard offset + 2 <= count else { return 0 }
         return UInt16(self[startIndex + offset]) | UInt16(self[startIndex + offset + 1]) << 8
     }
+    func int32(at offset: Int) -> Int32 { Int32(bitPattern: uint32(at: offset)) }
     func uint32(at offset: Int) -> UInt32 {
         guard offset + 4 <= count else { return 0 }
         return (0..<4).reduce(UInt32(0)) { $0 | UInt32(self[startIndex + offset + $1]) << (8 * $1) }

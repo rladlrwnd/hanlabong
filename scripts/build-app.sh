@@ -113,11 +113,11 @@ codesign --force --sign "$SIGN_IDENTITY" --identifier app.dragedit.DragEdit "$AP
 codesign --verify "$APP"
 echo "built $APP ($CONFIG)"
 
-# --- 애드온(따로 된 앱): Hanlabong Developing, Hanlabong PDF ---
+# --- 애드온(따로 된 앱): Hanlabong Developing, Hanlabong WordPro ---
 # 셰이더를 안 써서 swift build만으로 묶는다. 한라봉 바로 옆(build/)에 두면 휠이 여기서 먼저 찾는다.
 LOWER_CONFIG="$(echo "$CONFIG" | tr '[:upper:]' '[:lower:]')"
 swift build -c "$LOWER_CONFIG" --product HanlabongDeveloping -Xswiftc -file-prefix-map -Xswiftc "$REPO=DragEdit" 2>&1 | grep -E "error:" || true
-swift build -c "$LOWER_CONFIG" --product HanlabongPDF -Xswiftc -file-prefix-map -Xswiftc "$REPO=DragEdit" 2>&1 | grep -E "error:" || true
+swift build -c "$LOWER_CONFIG" --product HanlabongWordPro -Xswiftc -file-prefix-map -Xswiftc "$REPO=DragEdit" 2>&1 | grep -E "error:" || true
 ADDON_PRODUCTS=".build/$LOWER_CONFIG"
 build_addon() {   # 실행 파일 이름, 앱 이름, Info.plist, 아이콘
   local exe="$1" name="$2" plist="$3" icon="$4"
@@ -140,6 +140,6 @@ build_addon() {   # 실행 파일 이름, 앱 이름, Info.plist, 아이콘
   echo "built $dest ($CONFIG)"
 }
 build_addon HanlabongDeveloping "Hanlabong Developing" Resources/Addons/Developing-Info.plist DevelopingIcon
-build_addon HanlabongPDF "Hanlabong PDF" Resources/Addons/PDF-Info.plist PDFIcon
+build_addon HanlabongWordPro "Hanlabong WordPro" Resources/Addons/WordPro-Info.plist PDFIcon
 # 선택: AVI·MKV·WebM·WMV·GIF 영상 변환은 ffmpeg가 있어야 한다
 command -v ffmpeg >/dev/null 2>&1 || [ -x /opt/homebrew/bin/ffmpeg ] || echo "ℹ️  ffmpeg가 없어요. MP4·MOV 말고 다른 영상 형식도 쓰려면: brew install ffmpeg"

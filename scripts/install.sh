@@ -9,7 +9,8 @@ pkill -x DragEdit 2>/dev/null || true  # 실행 파일 이름은 예전 그대�
 pkill -x Prism 2>/dev/null || true  # 예전 이름
 pkill -x TextPopup 2>/dev/null || true
 pkill -x HanlabongDeveloping 2>/dev/null || true
-pkill -x HanlabongPDF 2>/dev/null || true
+pkill -x HanlabongWordPro 2>/dev/null || true
+pkill -x HanlabongPDF 2>/dev/null || true  # 옛 이름(Hanlabong PDF)
 sleep 0.5
 
 DEST="${INSTALL_DIR:-/Applications}/Hanlabong.app"
@@ -18,11 +19,13 @@ rm -rf "$DEST"
 rm -rf "${INSTALL_DIR:-/Applications}/Prism.app" "${INSTALL_DIR:-/Applications}/DragEdit.app"
 cp -R build/Hanlabong.app "$DEST"
 # 애드온도 같은 폴더에(휠이 한라봉 옆에서 먼저 찾는다)
-for addon in "Hanlabong Developing" "Hanlabong PDF"; do
+for addon in "Hanlabong Developing" "Hanlabong WordPro"; do
   rm -rf "${INSTALL_DIR:-/Applications}/$addon.app"
   cp -R "build/$addon.app" "${INSTALL_DIR:-/Applications}/$addon.app"
   rm -rf "build/$addon.app"
 done
+# 옛 이름 애드온(Hanlabong PDF)은 WordPro가 이어받았으니 치운다(식별자가 같아 두 개면 맥이 헷갈린다)
+rm -rf "${INSTALL_DIR:-/Applications}/Hanlabong PDF.app"
 # 개발용 복사본은 지워서, 같은 앱이 두 개 떠 있지 않게 한다
 rm -rf build/Hanlabong.app
 open "$DEST"
