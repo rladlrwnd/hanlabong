@@ -63,6 +63,21 @@ public struct ColorMixer: Codable, Equatable, Hashable, Sendable {
     public var luminance = [Double](repeating: 0, count: 8)
 
     public init() {}
+
+    /// 프리셋 파일(develop-presets.json 등, 손으로 고칠 수 있음)의 배열이 8칸이 아니면 늘 8칸으로 맞춘다.
+    /// 짧은 배열이 그대로 들어오면 hue[i]가 범위를 벗어나 앱이 죽었다. 숫자가 아닌 값(NaN·무한대)은 0으로
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        func eight(_ key: CodingKeys) throws -> [Double] {
+            let raw = try c.decodeIfPresent([Double].self, forKey: key) ?? []
+            let clean = raw.prefix(8).map { $0.isFinite ? min(max($0, -100), 100) : 0 }
+            return clean + [Double](repeating: 0, count: 8 - clean.count)
+        }
+        hue = try eight(.hue)
+        saturation = try eight(.saturation)
+        luminance = try eight(.luminance)
+    }
+
     public var isNeutral: Bool { (hue + saturation + luminance).allSatisfy { $0 == 0 } }
 
     /// 이 색(도)이 각 띠에 얼마나 속하는지: 가운데 1, 이웃 띠 가운데로 갈수록 0
