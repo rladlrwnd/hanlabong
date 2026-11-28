@@ -381,10 +381,17 @@ public final class FileSkillExecutor: @unchecked Sendable {
         case .fit(let w, let h): scale = min(Double(w) / Double(extent.width), Double(h) / Double(extent.height))
         case .megapixels(let mp): scale = (mp * 1_000_000 / (Double(extent.width) * Double(extent.height))).squareRoot()
         }
-        guard scale > 0, scale != 1, scale < 1 || allowUpscale else { return image }
-        return scaled(image, toWidth: max(1, Int((Double(extent.width) * scale).rounded())),
-                      height: max(1, Int((Double(extent.height) * scale).rounded())))
+        guard scale.isFinite, scale > 0, scale != 1, scale < 1 || allowUpscale else { return image }
+        // 결과 픽셀 수 상한(아주 큰 퍼센트·메가픽셀 값이면 Int 변환이 넘치거나 수십 GB를 잡으려다 죽었다)
+        let area = Double(extent.width) * Double(extent.height) * scale * scale
+        let safeScale = area > Self.maxOutputPixels ? scale * (Self.maxOutputPixels / area).squareRoot() : scale
+        return scaled(image, toWidth: clampedInt(Double(extent.width) * safeScale, 1...Self.maxOutputEdge),
+                      height: clampedInt(Double(extent.height) * safeScale, 1...Self.maxOutputEdge))
     }
+
+    /// 결과 사진 한 장의 상한: 4억 픽셀(2만×2만), 한 변 6만5천 픽셀
+    static let maxOutputPixels: Double = 400_000_000
+    static let maxOutputEdge = 65_000
 
     /// Lanczos로 정확히 `width`×`height` 픽셀이 되게 줄이거나 키운다. 가장자리가 흐려지지 않게 가장자리 픽셀을 늘려서 계산한다.
     private func scaled(_ image: CIImage, toWidth width: Int, height: Int) -> CIImage {
@@ -448,8 +455,11 @@ public final class FileSkillExecutor: @unchecked Sendable {
             return base
         }
 
-        let targetWidth = max(1, Int((extent.width * spec.sizePercent / 100).rounded()))
-        let targetHeight = max(1, Int((CGFloat(targetWidth) * mark.extent.height / mark.extent.width).rounded()))
+        // 워터마크 크기는 사진 폭의 1~100%(아주 큰 값이면 Int 변환이 넘쳐 죽었다)
+        let percent = spec.sizePercent.isFinite ? min(max(spec.sizePercent, 1), 100) : 20
+        guard mark.extent.width > 0, mark.extent.height > 0 else { return base }
+        let targetWidth = clampedInt(extent.width * percent / 100, 1...Self.maxOutputEdge)
+        let targetHeight = clampedInt(CGFloat(targetWidth) * mark.extent.height / mark.extent.width, 1...Self.maxOutputEdge)
         var placed = scaled(mark, toWidth: targetWidth, height: targetHeight)
 
         if spec.opacity < 1 {
@@ -609,6 +619,10 @@ public final class FileSkillExecutor: @unchecked Sendable {
     /// Core Image로 한 번만 그려서 `CGImage`로 만든다. 프로필이 붙은 채로 나온다.
     static func renderBitmap(_ image: CIImage, context: CIContext, colorSpace: CGColorSpace, bits16: Bool, gray: Bool, alpha: Bool) throws -> CGImage {
         let bounds = image.extent.integral
+        guard !bounds.isInfinite, bounds.width.isFinite, bounds.height.isFinite, bounds.width >= 1, bounds.height >= 1,
+              Double(bounds.width) * Double(bounds.height) <= maxOutputPixels else {
+            throw FileSkillError.tooLarge(L("결과 사진", "the result image"))
+        }
         let width = Int(bounds.width), height = Int(bounds.height)
         let channels = gray ? 1 : 4
         let bytesPerComponent = bits16 ? 2 : 1

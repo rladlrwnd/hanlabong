@@ -75,7 +75,7 @@ final class WorkspaceWindowController: NSObject, NSWindowDelegate {
 
     var dirty: Bool {
         switch pane {
-        case .pdf(let session): return session.dirty
+        case .pdf(let session): return session.hasUnsavedChanges
         case .document(let session, _): return session.dirty
         }
     }
@@ -87,11 +87,11 @@ final class WorkspaceWindowController: NSObject, NSWindowDelegate {
         }
     }
 
-    /// 저장. 문서 영역은 끝날 때까지 기다렸다가 성공했는지 돌려준다(실패하면 창을 닫거나 앱을 끄지 않게). PDF는 예전처럼 늘 true
+    /// 저장. 끝날 때까지 기다렸다가 성공했는지 돌려준다(실패하면 창을 닫거나 앱을 끄지 않게)
     @discardableResult
     func save() -> Bool {
         switch pane {
-        case .pdf(let session): session.save(.normal); return true
+        case .pdf(let session): return session.save(.normal)
         case .document(let session, _): return session.save()
         }
     }

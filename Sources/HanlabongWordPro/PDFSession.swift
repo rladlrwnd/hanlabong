@@ -11,6 +11,24 @@ final class PDFSession: ObservableObject {
     @Published private(set) var url: URL?
     @Published private(set) var document: PDFDocument?
     @Published private(set) var dirty = false
+    /// 마지막으로 열거나 저장했을 때의 입력칸 값. 사용자가 칸에 직접 친 글은 dirty에 안 잡혀서 닫을 때 이것과 비교한다
+    private var savedFormValues: [String] = []
+    /// 저장 안 한 고침이 있는지(표시·쪽 고침 + 입력칸에 직접 친 글)
+    var hasUnsavedChanges: Bool {
+        dirty || (document.map { Self.formValues($0) != savedFormValues } ?? false)
+    }
+
+    /// 문서의 모든 입력칸 값(이름·글·체크 상태)
+    static func formValues(_ document: PDFDocument) -> [String] {
+        var values: [String] = []
+        for i in 0..<document.pageCount {
+            guard let page = document.page(at: i) else { continue }
+            for a in page.annotations where a.type == "Widget" {
+                values.append("\(i)|\(a.fieldName ?? "")|\(a.widgetStringValue ?? "")|\(a.buttonWidgetState.rawValue)")
+            }
+        }
+        return values
+    }
     @Published var message: String?
     @Published var needsPassword = false
     @Published var searchText = ""
@@ -112,7 +130,7 @@ final class PDFSession: ObservableObject {
         }
         // 새 파일이 오면 바꿔서 연다. 저장 안 한 고침이 있으면 날리지 않게 멈춘다(뒤에 붙이기는 "합치기"로)
         if document != nil {
-            guard !dirty else {
+            guard !hasUnsavedChanges else {
                 message = L("저장하지 않은 고침이 있어요. 먼저 저장하거나 되돌린 뒤에 열어요", "You have unsaved changes. Save or undo them first")
                 return
             }
@@ -162,6 +180,7 @@ final class PDFSession: ObservableObject {
         document = doc
         self.url = url
         dirty = false
+        savedFormValues = Self.formValues(doc)
         undoStack = []
         redoStack = []
         view?.document = doc
@@ -210,7 +229,7 @@ final class PDFSession: ObservableObject {
 
     private func reset() {
         bookIndex = nil; history = []
-        document = nil; url = nil; dirty = false; undoStack = []; redoStack = []; matches = []
+        document = nil; url = nil; dirty = false; savedFormValues = []; undoStack = []; redoStack = []; matches = []
     }
 
     // MARK: 고치기(되돌릴 수 있게 직전 상태를 남긴다)
@@ -365,8 +384,10 @@ final class PDFSession: ObservableObject {
 
     enum SaveKind { case normal, smaller, password(String), split(every: Int) }
 
-    func save(_ kind: SaveKind) {
-        guard let document, let url else { return }
+    /// 저장했으면 true. 실패하면 message에 까닭을 띄우고 false(닫기·끄기를 막을 수 있게)
+    @discardableResult
+    func save(_ kind: SaveKind) -> Bool {
+        guard let document, let url else { return false }
         do {
             switch kind {
             case .normal:
@@ -384,12 +405,15 @@ final class PDFSession: ObservableObject {
                 finish([try FileOutputWriter.save(data, fileExtension: "pdf", suffix: "_locked", besideOriginal: url)])
             case .split(let every):
                 let n = max(1, every)
+                // 나눠 저장도 가린 쪽을 먼저 굳힌다(안 그러면 가린 밑글자가 나눈 파일에 그대로 남는다)
+                let source = try burnedRedactions(document)
                 var outputs: [URL] = []
                 var start = 0, part = 1
-                while start < document.pageCount {
+                while start < source.pageCount {
                     let piece = PDFDocument()
-                    for i in start..<min(start + n, document.pageCount) {
-                        if let page = document.page(at: i)?.copy() as? PDFPage { piece.insert(page, at: piece.pageCount) }
+                    for i in start..<min(start + n, source.pageCount) {
+                        guard let page = source.page(at: i)?.copy() as? PDFPage else { throw FileSkillError.encodeFailed("PDF") }
+                        piece.insert(page, at: piece.pageCount)
                     }
                     guard let data = piece.dataRepresentation() else { throw FileSkillError.encodeFailed("PDF") }
                     outputs.append(try FileOutputWriter.save(data, fileExtension: "pdf", suffix: "_part\(part)", besideOriginal: url))
@@ -397,8 +421,10 @@ final class PDFSession: ObservableObject {
                 }
                 finish(outputs)
             }
+            return true
         } catch {
             message = (error as? LocalizedError)?.errorDescription ?? L("저장하지 못했어요", "Couldn't save")
+            return false
         }
     }
 
@@ -409,6 +435,7 @@ final class PDFSession: ObservableObject {
             message = L("\(outputs.count)개 파일로 저장했어요", "Saved \(outputs.count) files") + note
         }
         dirty = false
+        if let document { savedFormValues = Self.formValues(document) }
     }
 }
 

@@ -132,4 +132,11 @@ struct CurveAndMixerTests {
         let s = try JSONDecoder().decode(DevelopSettings.self, from: Data(#"{"exposure":0.5,"contrast":10}"#.utf8))
         #expect(s.curve.isIdentity && s.mixer.isNeutral)
     }
+
+    @Test func mixerArraysOfWrongLengthAreFixedToEight() throws {
+        let json = #"{"hue":[10],"saturation":[],"luminance":[1,2,3,4,5,6,7,8,9,10]}"#
+        let m = try JSONDecoder().decode(ColorMixer.self, from: Data(json.utf8))
+        #expect(m.hue.count == 8 && m.saturation.count == 8 && m.luminance.count == 8)
+        #expect(m.hue[0] == 10 && m.hue[7] == 0 && m.luminance[7] == 8)
+    }
 }

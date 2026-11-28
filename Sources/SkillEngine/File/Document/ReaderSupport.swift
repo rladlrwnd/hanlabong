@@ -108,6 +108,15 @@ final class OXNode {
         }
     }
 
+    /// 이름이 맞는 가장 바깥 노드만(맞은 노드 안으로는 안 들어간다). 글상자 안 글상자처럼 겹친 것을
+    /// `descendants`로 모으면 안쪽 것을 깊이마다 또 훑어서 2의 거듭제곱으로 늘어난다(이상한 파일에서 멈춤).
+    /// 안쪽 것은 바깥 것을 처리할 때 다시 찾아진다.
+    func outermostDescendants(_ names: Set<String>, into result: inout [OXNode]) {
+        for c in children {
+            if names.contains(c.name) { result.append(c) } else { c.outermostDescendants(names, into: &result) }
+        }
+    }
+
     /// 이 노드 아래 글 조각을 이어 붙인 것
     var allText: String {
         if isText { return text }
@@ -245,10 +254,14 @@ struct ReaderBlocks {
         add(DocumentParagraph(runs: [], image: image))
     }
 
+    /// 표 하나의 칸 수 상한. 이상한 파일이 칸을 수천만 개 만들게 해서 메모리를 다 쓰지 않게(편집기도 1000칸까지만 다룬다)
+    static let maxTableColumns = 1_000
+    static let maxTableCells = 2_000_000
+
     static func normalizeTable(_ rows: [[String]]) -> [[String]] {
-        let columns = rows.map(\.count).max() ?? 0
+        let columns = min(rows.map(\.count).max() ?? 0, maxTableColumns)
         guard columns > 0 else { return [] }
-        return rows.map { row in
+        return rows.prefix(max(1, maxTableCells / columns)).map { row in
             (0..<columns).map { c in
                 c < row.count ? row[c].trimmingCharacters(in: .whitespacesAndNewlines) : ""
             }

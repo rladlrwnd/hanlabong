@@ -119,6 +119,40 @@ struct ReaderStructureTests {
         }
     }
 
+    // MARK: 이상한 값이 든 파일(악성·망가진 파일)도 죽지 않고 읽고 바꾸기
+
+    @Test func hostileNumbersDoNotCrash() throws {
+        let numbering = #"<?xml version="1.0"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="0"><w:lvl w:ilvl="0"><w:start w:val="9223372036854775807"/><w:numFmt w:val="decimal"/></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>"#
+        let list = p("번호", props: #"<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>"#)
+        let body = p("음수 개요", props: #"<w:outlineLvl w:val="-5"/>"#)
+            + list + list
+            + p("거대한 간격", props: #"<w:spacing w:before="99999999999999999999" w:after="1e308" w:line="1e308"/><w:ind w:left="1e308" w:firstLine="-1e308"/>"#)
+            + #"<w:sectPr><w:pgSz w:w="1e308" w:h="99999999999999999999"/><w:pgMar w:top="1e308" w:bottom="1" w:left="1e308" w:right="1"/><w:cols w:num="99999999999999999999"/></w:sectPr>"#
+        let doc = try RichDocumentReader.read(makeDocx(body: body, numbering: numbering))
+        #expect(doc.paragraphs.allSatisfy { ($0.headingLevel ?? 1) >= 1 && ($0.headingLevel ?? 1) <= 3 })
+        for format in [DocumentFormat.md, .html, .docx, .hwpx] {
+            _ = try RichDocumentWriter.write(doc, as: format)
+        }
+    }
+
+    @Test func nestedTextBoxesStayLinear() throws {
+        // 글상자 안 글상자 30겹: 예전엔 깊이마다 다시 훑어서 2^29번 처리하다 멈췄다
+        var inner = p("가장 안쪽 글")
+        for _ in 0..<30 {
+            inner = #"<w:p><w:r><w:pict><v:shape xmlns:v="urn:schemas-microsoft-com:vml"><v:textbox><w:txbxContent>"# + inner + "</w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p>"
+        }
+        let doc = try RichDocumentReader.read(makeDocx(body: inner))
+        let text = doc.paragraphs.flatMap(\.runs).map(\.text).joined()
+        #expect(text.components(separatedBy: "가장 안쪽 글").count - 1 == 1)
+    }
+
+    @Test func tableCellCountIsCapped() {
+        let rows = Array(repeating: Array(repeating: "x", count: 1), count: 5_000) + [Array(repeating: "y", count: 50_000)]
+        let cleaned = ReaderBlocks.normalizeTable(rows)
+        #expect(cleaned[0].count == ReaderBlocks.maxTableColumns)
+        #expect(cleaned.count * cleaned[0].count <= ReaderBlocks.maxTableCells)
+    }
+
     // MARK: 일반 Word 파일처럼 손으로 만든 docx
 
     private func makeDocx(body: String, extraStyles: String = "", numbering: String? = nil, media: [String: Data] = [:], rels: String = "") -> URL {

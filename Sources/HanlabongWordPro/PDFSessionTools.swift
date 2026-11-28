@@ -146,7 +146,7 @@ extension PDFSession {
 
     /// 가리기 표시가 있는 쪽만 그림으로 굳힌 사본. 없으면 원래 문서 그대로
     func burnedRedactions(_ document: PDFDocument) throws -> PDFDocument {
-        guard let burned = PDFRedaction.burned(document) else { return document }
+        guard let burned = try PDFRedaction.burned(document) else { return document }
         message = L("가린 쪽은 그림으로 바뀌어서 그 쪽 글자는 고를 수 없어요", "Redacted pages became images, so their text can't be selected")
         return burned
     }
@@ -260,7 +260,14 @@ extension PDFSession {
         case .searchable: skill = FileSkill(id: "pdf-ocr", name: "OCR", input: [.pdf], steps: [.ocrPDF], output: FileOutput(suffix: "_searchable"))
         }
         message = L("만드는 중…", "Working…")
-        guard let data = try? burnedRedactions(document).dataRepresentation() else { return }
+        let data: Data
+        do {
+            guard let made = try burnedRedactions(document).dataRepresentation() else { throw FileSkillError.encodeFailed("PDF") }
+            data = made
+        } catch {
+            message = (error as? LocalizedError)?.errorDescription ?? L("만들지 못했어요", "Couldn't make it")
+            return
+        }
         let source = url
         Task.detached(priority: .userInitiated) {
             let temp = FileManager.default.temporaryDirectory.appendingPathComponent("hanlabong-pdf-\(UUID().uuidString).pdf")

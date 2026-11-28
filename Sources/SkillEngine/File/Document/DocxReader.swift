@@ -395,7 +395,7 @@ enum DocxReader {
             var level = NumLevel()
             level.fmt = lvl.child("numFmt")?.attr("val") ?? "decimal"
             if let text = lvl.child("lvlText")?.attr("val") { level.text = text } else if level.fmt == "bullet" { level.text = "•" }
-            level.start = lvl.child("start")?.attr("val").flatMap(Int.init) ?? 1
+            level.start = min(max(lvl.child("start")?.attr("val").flatMap(Int.init) ?? 1, 0), 1_000_000)
             level.suff = lvl.child("suff")?.attr("val") ?? "tab"
             level.para = ParaProps(lvl.child("pPr")).indentOnly
             return level
@@ -416,7 +416,7 @@ enum DocxReader {
                 if let abstract = num.child("abstractNumId")?.attr("val") { numToAbstract[id] = abstract }
                 for override in num.children("lvlOverride") {
                     guard let index = override.attr("ilvl").flatMap(Int.init) else { continue }
-                    if let start = override.child("startOverride")?.attr("val").flatMap(Int.init) { startOverrides[id, default: [:]][index] = start }
+                    if let start = override.child("startOverride")?.attr("val").flatMap(Int.init) { startOverrides[id, default: [:]][index] = min(max(start, 0), 1_000_000) }
                     if let lvl = override.child("lvl") { levelOverrides[id, default: [:]][index] = parseLevel(lvl) }
                 }
             }
@@ -458,7 +458,7 @@ enum DocxReader {
         func headingLevel(styleChain: [Style]) -> Int? {
             for style in styleChain {
                 if let level = Self.headingLevel(fromName: style.name) { return level }
-                if let outline = style.outline { return outline < 9 ? min(outline + 1, 3) : nil }
+                if let outline = style.outline { return (0..<9).contains(outline) ? min(outline + 1, 3) : nil }
             }
             return nil
         }
@@ -560,7 +560,7 @@ enum DocxReader {
             // 제목 단계: 문단의 개요 수준 → 스타일 이름·개요 수준
             var level: Int?
             if let outline = pPr?.child("outlineLvl")?.attr("val").flatMap(Int.init) {
-                level = outline < 9 ? min(outline + 1, 3) : nil
+                level = (0..<9).contains(outline) ? min(outline + 1, 3) : nil
             } else {
                 level = headingLevel(styleChain: styleChain)
             }
@@ -931,7 +931,7 @@ enum DocxReader {
 
         func drawing(_ node: OXNode, _ state: ParaState) {
             var boxes: [OXNode] = []
-            node.descendants("txbxContent", into: &boxes)
+            node.outermostDescendants(["txbxContent"], into: &boxes)
             state.textBoxes += boxes
             guard let blip = node.firstDescendant("blip"), let id = blip.attr("embed") ?? blip.attr("link") else { return }
             var size: CGSize?
@@ -954,7 +954,7 @@ enum DocxReader {
         /// 옛 방식 그림(VML): v:imagedata r:id, 크기는 style의 width·height. v:textbox 안 글도 챙긴다
         func picture(_ node: OXNode, _ state: ParaState) {
             var boxes: [OXNode] = []
-            node.descendants("txbxContent", into: &boxes)
+            node.outermostDescendants(["txbxContent"], into: &boxes)
             state.textBoxes += boxes
             guard let data = node.firstDescendant("imagedata"), let id = data.attr("id") else { return }
             var size: CGSize?
@@ -987,6 +987,7 @@ enum DocxReader {
             var cellBorders = false
             var cellWidths: [[Double]] = []
             for tr in tbl.children("tr") {
+                guard rows.count < 20_000 else { break }     // 줄·칸 상한(이상한 파일이 수십억 칸을 만들지 않게)
                 var row: [String] = []
                 var info: [(col: Int, span: Int, merge: String?)] = []
                 var widths: [Double] = []
@@ -994,6 +995,7 @@ enum DocxReader {
                     row += Array(repeating: "", count: min(before, 200))
                 }
                 for tc in tr.children("tc") {
+                    guard row.count < ReaderBlocks.maxTableColumns else { break }
                     cellImages = []
                     let col = row.count
                     row.append(cellText(tc))
