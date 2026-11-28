@@ -58,6 +58,21 @@ APP="build/Hanlabong.app"
 REPO="$(pwd)"
 PREFIX_MAP="-file-prefix-map $REPO=DragEdit"
 
+# swift build를 돌리고 실패하면 멈춘다. 전에는 "| grep ... || true"라서 빌드가 실패해도 계속 갔고,
+# .build/에 예전 실행 파일이 남아 있으면 옛 코드에 새 버전 번호를 붙여 묶어 버릴 수 있었다.
+swift_build() {
+  local log
+  log="$(mktemp -t hanlabong-build)"
+  if ! swift build "$@" >"$log" 2>&1; then
+    grep -E "error" "$log" | head -60 || tail -40 "$log"
+    rm -f "$log"
+    echo "❌ 빌드에 실패했어요: swift build $*"
+    exit 1
+  fi
+  grep -E "Build complete" "$log" || true
+  rm -f "$log"
+}
+
 if [ "$USE_XCODE" = "1" ]; then
   DERIVED="build/DerivedData"
   PRODUCTS="$DERIVED/Build/Products/$CONFIG"
@@ -76,7 +91,7 @@ if [ "$USE_XCODE" = "1" ]; then
   cp -R "$PRODUCTS/BorderBeamKit_BorderBeamKit.bundle" Prebuilt/
   RESOURCE_BUNDLES=("$PRODUCTS"/*.bundle)
 else
-  swift build -c "$(echo "$CONFIG" | tr '[:upper:]' '[:lower:]')" -Xswiftc -file-prefix-map -Xswiftc "$REPO=DragEdit" 2>&1 | grep -E "error|Build complete" || true
+  swift_build -c "$(echo "$CONFIG" | tr '[:upper:]' '[:lower:]')" -Xswiftc -file-prefix-map -Xswiftc "$REPO=DragEdit"
   PRODUCTS=".build/$(echo "$CONFIG" | tr '[:upper:]' '[:lower:]')"
   BINARY="$PRODUCTS/DragEdit"
   [ -x "$BINARY" ] || { echo "❌ 빌드에 실패했어요"; exit 1; }
@@ -116,8 +131,8 @@ echo "built $APP ($CONFIG)"
 # --- 애드온(따로 된 앱): Hanlabong Developing, Hanlabong WordPro ---
 # 셰이더를 안 써서 swift build만으로 묶는다. 한라봉 바로 옆(build/)에 두면 휠이 여기서 먼저 찾는다.
 LOWER_CONFIG="$(echo "$CONFIG" | tr '[:upper:]' '[:lower:]')"
-swift build -c "$LOWER_CONFIG" --product HanlabongDeveloping -Xswiftc -file-prefix-map -Xswiftc "$REPO=DragEdit" 2>&1 | grep -E "error:" || true
-swift build -c "$LOWER_CONFIG" --product HanlabongWordPro -Xswiftc -file-prefix-map -Xswiftc "$REPO=DragEdit" 2>&1 | grep -E "error:" || true
+swift_build -c "$LOWER_CONFIG" --product HanlabongDeveloping -Xswiftc -file-prefix-map -Xswiftc "$REPO=DragEdit"
+swift_build -c "$LOWER_CONFIG" --product HanlabongWordPro -Xswiftc -file-prefix-map -Xswiftc "$REPO=DragEdit"
 ADDON_PRODUCTS=".build/$LOWER_CONFIG"
 build_addon() {   # 실행 파일 이름, 앱 이름, Info.plist, 아이콘
   local exe="$1" name="$2" plist="$3" icon="$4"
