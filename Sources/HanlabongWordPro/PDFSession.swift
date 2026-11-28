@@ -384,12 +384,15 @@ final class PDFSession: ObservableObject {
                 finish([try FileOutputWriter.save(data, fileExtension: "pdf", suffix: "_locked", besideOriginal: url)])
             case .split(let every):
                 let n = max(1, every)
+                // 나눠 저장도 가린 쪽을 먼저 굳힌다(안 그러면 가린 밑글자가 나눈 파일에 그대로 남는다)
+                let source = try burnedRedactions(document)
                 var outputs: [URL] = []
                 var start = 0, part = 1
-                while start < document.pageCount {
+                while start < source.pageCount {
                     let piece = PDFDocument()
-                    for i in start..<min(start + n, document.pageCount) {
-                        if let page = document.page(at: i)?.copy() as? PDFPage { piece.insert(page, at: piece.pageCount) }
+                    for i in start..<min(start + n, source.pageCount) {
+                        guard let page = source.page(at: i)?.copy() as? PDFPage else { throw FileSkillError.encodeFailed("PDF") }
+                        piece.insert(page, at: piece.pageCount)
                     }
                     guard let data = piece.dataRepresentation() else { throw FileSkillError.encodeFailed("PDF") }
                     outputs.append(try FileOutputWriter.save(data, fileExtension: "pdf", suffix: "_part\(part)", besideOriginal: url))

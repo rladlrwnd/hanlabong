@@ -28,7 +28,7 @@ struct PDFRedactionTests {
         let box = PDFAnnotation(bounds: CGRect(x: 20, y: 190, width: 360, height: 40), forType: .square, withProperties: nil)
         box.userName = PDFRedaction.tag
         page.addAnnotation(box)
-        let burned = try #require(PDFRedaction.burned(doc))
+        let burned = try #require(try PDFRedaction.burned(doc))
         let bytes = try #require(burned.dataRepresentation())
         let reopened = try #require(PDFDocument(data: bytes))
         #expect(reopened.pageCount == 2)
@@ -38,7 +38,21 @@ struct PDFRedactionTests {
         #expect(second.contains("PUBLIC"))     // 안 가린 쪽은 글자 그대로
     }
 
-    @Test func nothingToRedactReturnsNil() {
-        #expect(PDFRedaction.burned(document(["hello"])) == nil)
+    @Test func nothingToRedactReturnsNil() throws {
+        #expect(try PDFRedaction.burned(document(["hello"])) == nil)
+    }
+
+    @Test func rotatedPageKeepsRotationAndLosesText() throws {
+        let doc = document(["SECRET 1234"])
+        let page = doc.page(at: 0)!
+        page.rotation = 90
+        let box = PDFAnnotation(bounds: CGRect(x: 20, y: 190, width: 360, height: 40), forType: .square, withProperties: nil)
+        box.userName = PDFRedaction.tag
+        page.addAnnotation(box)
+        let burned = try #require(try PDFRedaction.burned(doc))
+        let reopened = try #require(PDFDocument(data: try #require(burned.dataRepresentation())))
+        #expect(reopened.page(at: 0)?.rotation == 90)
+        #expect(!(reopened.string ?? "").contains("SECRET"))
+        #expect(!PDFRedaction.hasRedactions(reopened))
     }
 }
