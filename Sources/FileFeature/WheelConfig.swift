@@ -448,19 +448,21 @@ package struct PhotoPresetDraft: Equatable {
     /// 정해진 순서(읽기 → 색 → 크기 → 워터마크 → 메타데이터 → 저장)의 블록으로
     package var skill: FileSkill {
         var steps: [FileStep] = [.decode, .colorspace(colorspace)]
+        // 입력칸 값은 범위 안으로(아주 큰 값·음수가 그대로 가면 Int 변환에서 앱이 죽었다)
+        func clamp(_ value: Double, _ low: Double, _ high: Double) -> Double { value.isFinite ? min(max(value, low), high) : low }
         switch resizeMode {
         case .none: break
-        case .longEdge: steps.append(.resize(.longEdge(max(1, Int(resizeValue)))))
-        case .shortEdge: steps.append(.resize(.shortEdge(max(1, Int(resizeValue)))))
-        case .percent: steps.append(.resize(.percent(max(1, resizeValue))))
+        case .longEdge: steps.append(.resize(.longEdge(Int(clamp(resizeValue, 1, 65_000)))))
+        case .shortEdge: steps.append(.resize(.shortEdge(Int(clamp(resizeValue, 1, 65_000)))))
+        case .percent: steps.append(.resize(.percent(clamp(resizeValue, 1, 100))))
         }
         if watermarkOn, !watermarkText.trimmingCharacters(in: .whitespaces).isEmpty {
             steps.append(.watermark(WatermarkSpec(text: watermarkText, position: watermarkPosition, opacity: watermarkOpacity,
-                                                  sizePercent: watermarkSize, marginPercent: watermarkMargin)))
+                                                  sizePercent: clamp(watermarkSize, 1, 100), marginPercent: clamp(watermarkMargin, 0, 40))))
         }
         steps.append(.metadata(MetadataSpec(mode: metadataMode, artist: artist.isEmpty ? nil : artist, copyright: copyright.isEmpty ? nil : copyright)))
         steps.append(.encode(EncodeSpec(format: format, quality: format.isLossy ? quality : nil,
-                                        maxBytes: limitSize ? Int((maxMegabytes * 1_000_000).rounded()) : nil)))
+                                        maxBytes: limitSize ? Int((clamp(maxMegabytes, 0.01, 10_000) * 1_000_000).rounded()) : nil)))
         let safeSuffix = suffix.replacingOccurrences(of: "/", with: "").replacingOccurrences(of: "..", with: "")
         return FileSkill(id: id, name: name.isEmpty ? L("이름 없는 프리셋", "Untitled preset") : name, symbol: symbol,
                          input: [.image, .raw], steps: steps, output: FileOutput(suffix: safeSuffix))
