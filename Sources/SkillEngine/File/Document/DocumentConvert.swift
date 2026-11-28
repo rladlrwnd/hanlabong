@@ -486,6 +486,8 @@ public enum RichDocumentWriter {
             var marks: [NSAttributedString.Key: Any] = [:]
             let level = paragraph.headingLevel.map { min(max($0, 1), 3) }
             if let level { marks[.hanlabongHeading] = level } else { marks[.hanlabongPlainBody] = true }
+            if let rule = paragraph.ruleAbove { marks[.hanlabongRuleAbove] = rule }
+            if let rule = paragraph.ruleBelow { marks[.hanlabongRuleBelow] = rule }
             let style = RichStyle.paragraphStyle(for: paragraph, heading: level != nil)
             for run in paragraph.runs {
                 out.append(NSAttributedString(string: run.text, attributes: RichStyle.attributes(
@@ -857,6 +859,40 @@ public enum RichDocumentWriter {
         context.restoreGState()
     }
 
+    /// 문단 위·아래 구분선을 긋는다(뒤집힌 좌표, 본문 왼쪽 위가 0)
+    private static func drawRules(storage: NSTextStorage, layout: NSLayoutManager, glyphs: NSRange, width: CGFloat) {
+        let characters = layout.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
+        let text = storage.string as NSString
+        var location = characters.location
+        while location < NSMaxRange(characters) {
+            let paragraphRange = text.paragraphRange(for: NSRange(location: location, length: 0))
+            defer { location = NSMaxRange(paragraphRange) }
+            let attrs = storage.attributes(at: paragraphRange.location, effectiveRange: nil)
+            let above = attrs[.hanlabongRuleAbove] as? DocumentRule, below = attrs[.hanlabongRuleBelow] as? DocumentRule
+            guard above != nil || below != nil else { continue }
+            let glyphRange = layout.glyphRange(forCharacterRange: paragraphRange, actualCharacterRange: nil)
+            guard glyphRange.length > 0 else { continue }
+            let style = attrs[.paragraphStyle] as? NSParagraphStyle
+            func line(_ rule: DocumentRule, y: CGFloat) {
+                let left = rule.fullWidth ? 0 : (style?.headIndent ?? 0)
+                let right = rule.fullWidth ? width : width + min(0, style?.tailIndent ?? 0)
+                let path = NSBezierPath()
+                path.move(to: CGPoint(x: left, y: y)); path.line(to: CGPoint(x: right, y: y))
+                path.lineWidth = max(rule.width, 0.25)
+                (RichStyle.color(hex: rule.colorHex) ?? .gray).setStroke()
+                path.stroke()
+            }
+            if let above, NSLocationInRange(glyphRange.location, glyphs) {
+                let first = layout.lineFragmentUsedRect(forGlyphAt: glyphRange.location, effectiveRange: nil)
+                line(above, y: first.minY - above.gap - above.width / 2)
+            }
+            if let below, NSLocationInRange(NSMaxRange(glyphRange) - 1, glyphs) {
+                let last = layout.lineFragmentUsedRect(forGlyphAt: NSMaxRange(glyphRange) - 1, effectiveRange: nil)
+                line(below, y: last.maxY + below.gap + below.width / 2)
+            }
+        }
+    }
+
     /// 문서 쪽 크기 PDF(여백은 문서 여백, 없으면 짧은 변의 약 8%). 머리글은 위, 꼬리글(과 쪽 번호)은 아래. 글자는 진짜 글자라 검색·복사가 된다. 표·그림도 그린다.
     static func pdf(_ document: RichDocument) -> Data {
         let m = metrics(document)
@@ -893,6 +929,7 @@ public enum RichDocumentWriter {
                 NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
                 layout.drawBackground(forGlyphRange: range, at: .zero)
                 layout.drawGlyphs(forGlyphRange: range, at: .zero)
+                drawRules(storage: storage, layout: layout, glyphs: range, width: m.content.width)
                 NSGraphicsContext.restoreGraphicsState()
                 context.restoreGState()
                 drawHeaderFooter(document, metrics: m, pageNumber: pages + 1, in: context)

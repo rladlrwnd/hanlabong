@@ -629,7 +629,7 @@ enum PDFLayout {
     }
 
     /// 같은 높이에 긴 글 줄이 나란히 놓인 곳이 세 번 이상이면 여러 단
-    private static func isMultiColumn(_ indices: [Int], in lines: [PDFLine], body: CGFloat) -> Bool {
+    static func isMultiColumn(_ indices: [Int], in lines: [PDFLine], body: CGFloat) -> Bool {
         var count = 0
         for row in rows(indices, in: lines) where row.members.count >= 2 {
             let long = row.members.map { lines[$0] }.filter { letters($0.text) >= 12 && $0.width >= body * 6 }

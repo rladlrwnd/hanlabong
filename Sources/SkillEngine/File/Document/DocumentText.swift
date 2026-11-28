@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import CoreText
 import Foundation
@@ -37,6 +38,22 @@ public struct DocumentRun: Equatable, Sendable {
 
 /// 문단 정렬
 public enum DocumentAlignment: String, Equatable, Sendable { case left, center, right, justify }
+
+/// 문단 위·아래에 긋는 가로 구분선(PDF의 가로줄을 살린다)
+public struct DocumentRule: Equatable, Sendable {
+    /// 선 색 "RRGGBB"
+    public var colorHex: String
+    /// 선 굵기 pt
+    public var width: CGFloat
+    /// 글자와 선 사이 거리 pt
+    public var gap: CGFloat
+    /// true = 문단 들여쓰기와 상관없이 본문 폭 전체에 긋는다
+    public var fullWidth: Bool
+
+    public init(colorHex: String = "808080", width: CGFloat = 0.5, gap: CGFloat = 4, fullWidth: Bool = true) {
+        self.colorHex = colorHex; self.width = width; self.gap = gap; self.fullWidth = fullWidth
+    }
+}
 
 /// 표 모양: 칸 너비·합친 칸·머리줄·테두리. `DocumentParagraph.table`의 글과 같은 줄×칸 격자 기준
 public struct DocumentTableLayout: Equatable, Sendable {
@@ -92,6 +109,11 @@ public struct DocumentParagraph: Equatable, Sendable {
     /// 문단 모양(nil·0 = 기본)
     public var alignment: DocumentAlignment?
     public var leftIndent: CGFloat = 0
+    /// 오른쪽 들여쓰기 pt
+    public var rightIndent: CGFloat = 0
+    /// 문단 위·아래 구분선
+    public var ruleAbove: DocumentRule?
+    public var ruleBelow: DocumentRule?
     /// 첫 줄 들여쓰기(음수 = 내어쓰기)
     public var firstLineIndent: CGFloat = 0
     public var spaceBefore: CGFloat?
@@ -127,6 +149,19 @@ public struct ExtractedDocument: Sendable {
     public var pageCount: Int
     /// 본문 글자 크기(포인트)
     public var bodyFontSize: CGFloat
+    /// 본문 글꼴(가장 많은 글자에 쓰인 글꼴, 모르면 nil)
+    public var bodyFontName: String?
+    /// 쪽 여백(본문 글이 놓인 자리에서 잰 값, 모르면 nil)
+    public var margins: DocumentMargins?
+
+    /// 서식 있는 문서로(한글·워드 등으로 쓸 때): 쪽 크기·여백·본문 글꼴과 크기를 함께 넘긴다
+    public func richDocument(title fallback: String) -> RichDocument {
+        var document = RichDocument(title: title ?? fallback, paragraphs: paragraphs, pageSize: pageSize)
+        document.margins = margins
+        document.bodyFontSize = bodyFontSize
+        document.bodyFontName = bodyFontName
+        return document
+    }
 }
 
 /// PDF 한 줄. 좌표는 페이지 위쪽이 0인 값으로 바꿔 둔다.
@@ -161,6 +196,7 @@ enum PDFTextExtractor {
         var lines: [PDFLine] = []
         var rawPages: [String] = []
         var ocrPages = Set<Int>()
+        var rules: [PDFRule] = []
         for index in 0..<document.pageCount {
             guard let page = document.page(at: index) else { continue }
             let bounds = page.bounds(for: .mediaBox)
@@ -174,32 +210,62 @@ enum PDFTextExtractor {
             let pageText = (page.string ?? "") as NSString
             rawPages.append(pageText as String)
             guard let selection = page.selection(for: bounds) else { continue }
+            // 내용 흐름을 직접 훑어 실제 글꼴(굵게·세리프)과 가로 구분선을 찾는다
+            let scan = PDFContentScan.scan(page, index: index)
+            rules += scan.rules
             for line in selection.selectionsByLine() {
                 let rect = line.bounds(for: page)
-                let runs = Self.runs(of: line)
+                let top = bounds.maxY - rect.maxY, bottom = bounds.maxY - rect.minY
+                let found = PDFContentScan.pieces(for: (top, bottom, rect.minX - bounds.minX, rect.maxX - bounds.minX), in: scan)
+                let runs = Self.runs(of: line, pieces: found)
                 let text = runs.map(\.text).joined()
                 guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
                 let size = Self.dominantSize(of: line) ?? rect.height * 0.8
                 lines.append(PDFLine(
                     page: index, runs: runs,
-                    minX: rect.minX - bounds.minX, top: bounds.maxY - rect.maxY, bottom: bounds.maxY - rect.minY,
+                    minX: rect.minX - bounds.minX, top: top, bottom: bottom,
                     width: rect.width, fontSize: size, pageHeight: bounds.height,
                     segments: segments(of: line, page: page, pageText: pageText, origin: bounds, fontSize: size)
                 ))
+            }
+        }
+        // 본문 글꼴·크기(가장 많은 글자에 쓰인 것)는 문서 기본값으로 두고, 조각에는 그와 다른 것만 남긴다
+        let body = Self.bodyStyle(of: lines)
+        for i in lines.indices {
+            for j in lines[i].runs.indices {
+                if let size = lines[i].runs[j].fontSize, let bodySize = body.size, abs(size - bodySize) < 0.05 { lines[i].runs[j].fontSize = nil }
+                if let name = lines[i].runs[j].fontName, name == body.font { lines[i].runs[j].fontName = nil }
             }
         }
         let first = document.page(at: 0)?.bounds(for: .mediaBox).size ?? CGSize(width: 595, height: 842)
         let title = (document.documentAttributes?[PDFDocumentAttribute.titleAttribute] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         // 그래프를 그림으로 잘라 낼 때만 그 쪽을 그린다(글자 인식한 쪽·돌린 쪽은 좌표가 달라 빼고)
-        let paragraphs = assemble(lines) { index in
+        var margins: DocumentMargins?
+        let paragraphs = assemble(lines, rules: rules, margins: &margins) { index in
             guard !ocrPages.contains(index), let page = document.page(at: index), page.rotation % 360 == 0 else { return nil }
             return PageRaster.render(page)
         }
-        return ExtractedDocument(
+        var extracted = ExtractedDocument(
             paragraphs: paragraphs, rawPages: rawPages, title: title?.isEmpty == false ? title : nil,
-            pageSize: first, pageCount: document.pageCount, bodyFontSize: bodySize(of: lines)
+            pageSize: first, pageCount: document.pageCount, bodyFontSize: body.size ?? bodySize(of: lines)
         )
+        extracted.bodyFontName = body.font
+        extracted.margins = margins
+        return extracted
+    }
+
+    /// 가장 많은 글자에 쓰인 글자 크기·글꼴(조각에 적힌 값 기준, 없으면 nil)
+    static func bodyStyle(of lines: [PDFLine]) -> (size: CGFloat?, font: String?) {
+        var sizes: [CGFloat: Int] = [:], fonts: [String: Int] = [:]
+        for line in lines {
+            for run in line.runs {
+                let n = letterCount(run.text)
+                if let size = run.fontSize { sizes[size, default: 0] += n }
+                if let font = run.fontName { fonts[font, default: 0] += n }
+            }
+        }
+        return (sizes.max { $0.value < $1.value }?.key, fonts.max { $0.value < $1.value }?.key)
     }
 
     // MARK: 글꼴
@@ -211,30 +277,61 @@ enum PDFTextExtractor {
         return (value as! CTFont)
     }
 
-    /// 한 줄을 굵게·기울임이 같은 조각들로 나눈다
-    private static func runs(of line: PDFSelection) -> [DocumentRun] {
+    /// 한 줄을 모양(굵게·기울임·색·크기·글꼴)이 같은 조각들로 나눈다.
+    /// `pieces`(내용 흐름에서 찾은 실제 글꼴)가 있으면 굵게·기울임·글꼴은 그것을 믿는다.
+    private static func runs(of line: PDFSelection, pieces: [PDFTextPiece] = []) -> [DocumentRun] {
         guard let attributed = line.attributedString, attributed.length > 0 else {
             return [DocumentRun(Self.clean(line.string ?? ""))]
         }
-        return runs(of: attributed)
+        // PDFKit이 알려 준 글꼴이 실제 글꼴과 같으면 그대로 믿는다(맞지 않을 때만 내용 흐름의 글꼴로 고친다)
+        var known = Set<String>()
+        attributed.enumerateAttribute(fontKey, in: NSRange(location: 0, length: attributed.length)) { value, _, _ in
+            if let font = font(value) { known.insert(CTFontCopyPostScriptName(font) as String) }
+        }
+        let real = Set(pieces.map { PDFContentScan.strippedName($0.fontName) })
+        if real.isEmpty || known.isSubset(of: real) { return runs(of: attributed) }
+        return runs(of: attributed, fonts: PDFContentScan.fontRanges(pieces, length: attributed.length))
     }
 
-    static func runs(of attributed: NSAttributedString) -> [DocumentRun] {
+    private static let colorKey = NSAttributedString.Key("NSColor")
+
+    static func runs(of attributed: NSAttributedString, fonts: [(NSRange, String)] = []) -> [DocumentRun] {
+        // 나눌 자리: 글자 속성이 바뀌는 곳 + 실제 글꼴이 바뀌는 곳
+        let full = NSRange(location: 0, length: attributed.length)
+        var cuts = Set<Int>([0, attributed.length])
+        attributed.enumerateAttributes(in: full) { _, range, _ in cuts.insert(range.location) }
+        for (range, _) in fonts { cuts.insert(range.location); cuts.insert(min(NSMaxRange(range), attributed.length)) }
+        let points = cuts.filter { $0 <= attributed.length }.sorted()
         var runs: [DocumentRun] = []
-        attributed.enumerateAttribute(fontKey, in: NSRange(location: 0, length: attributed.length)) { value, range, _ in
+        for (start, end) in zip(points, points.dropFirst()) where end > start {
+            let range = NSRange(location: start, length: end - start)
             let text = Self.clean(attributed.attributedSubstring(from: range).string)
-            guard !text.isEmpty else { return }
-            var bold = false, italic = false
-            if let font = font(value) {
+            guard !text.isEmpty else { continue }
+            let attrs = attributed.attributes(at: start, effectiveRange: nil)
+            var run = DocumentRun(text)
+            if let font = font(attrs[fontKey]) {
                 let traits = CTFontGetSymbolicTraits(font)
-                let name = (CTFontCopyPostScriptName(font) as String).lowercased()
-                bold = traits.contains(.traitBold) || name.contains("bold") || name.contains("heavy") || name.contains("black")
-                italic = traits.contains(.traitItalic) || name.contains("italic") || name.contains("oblique")
+                let name = CTFontCopyPostScriptName(font) as String
+                let lower = name.lowercased()
+                run.bold = traits.contains(.traitBold) || lower.contains("bold") || lower.contains("heavy") || lower.contains("black")
+                run.italic = traits.contains(.traitItalic) || lower.contains("italic") || lower.contains("oblique")
+                run.fontSize = (CTFontGetSize(font) * 100).rounded() / 100
+                if !name.hasPrefix(".") { run.fontName = PDFContentScan.family(for: name) }
             }
-            if let last = runs.last, last.bold == bold, last.italic == italic {
+            if let real = fonts.first(where: { NSLocationInRange(start, $0.0) })?.1 {
+                let name = PDFContentScan.strippedName(real)
+                run.bold = PDFContentScan.isBold(name)
+                run.italic = PDFContentScan.isItalic(name)
+                run.fontName = PDFContentScan.family(for: name)
+            }
+            if let color = attrs[colorKey] as? NSColor { run.colorHex = RichStyle.hex(of: color) }
+            // 띄어쓰기·문장부호만 다른 글꼴로 나온 조각(한글 사이 공백이 대체 글꼴로 찍힌 것)은 앞 조각에 붙인다
+            var looser = run
+            looser.fontName = runs.last?.fontName
+            if let last = runs.last, last.sameStyle(as: run) || (last.sameStyle(as: looser) && text.allSatisfy({ $0.isWhitespace || $0.isPunctuation })) {
                 runs[runs.count - 1].text += text
             } else {
-                runs.append(DocumentRun(text, bold: bold, italic: italic))
+                runs.append(run)
             }
         }
         return runs
@@ -281,7 +378,7 @@ enum PDFTextExtractor {
 
     private static let sentenceEnders: Set<Character> = [".", "?", "!", "。", "？", "！", "…", ":", "："]
     private static let listMarker = try! NSRegularExpression(
-        pattern: #"^\s*([•·▪‣◦●○■□\-–—*]|\d{1,3}[.)]|\(\d{1,3}\)|[①-⑳]|[가-하][.)]|[a-zA-Z][.)])\s+"#
+        pattern: #"^\s*([•·▪‣◦●○■□\-–—*]|\d{1,3}[.)]|\(\d{1,3}\)|\[\d{1,3}\]|[①-⑳]|[가-하][.)]|[a-zA-Z][.)])\s+"#
     )
     private static let pageNumber = try! NSRegularExpression(pattern: #"^\s*[-–—]?\s*\d{1,4}\s*[-–—]?\s*$"#)
 
@@ -404,14 +501,14 @@ enum PDFTextExtractor {
             previous[previous.count - 1].text.removeLast()            // inter-\nnational → international
         } else if let a, let b, isCJK(a), isCJK(b) {
             // 붙여 쓴다
-        } else if let head = trailingHangul(prevText), let tail = leadingHangul(nextFirst.text),
+        } else if let head = trailingHangul(previous.map(\.text).joined()), let tail = leadingHangul(rest.map(\.text).joined()),
                   !spacing.needsSpace(head: head, tail: tail) {
             // 단어 중간에서 바뀐 줄: 붙여 쓴다 (속도 + 는 → 속도는)
         } else {
             previous[previous.count - 1].text += " "
         }
         for run in rest {
-            if let last = previous.last, last.bold == run.bold, last.italic == run.italic {
+            if let last = previous.last, last.sameStyle(as: run) {
                 previous[previous.count - 1].text += run.text
             } else {
                 previous.append(run)
@@ -441,6 +538,28 @@ enum PDFTextExtractor {
 
     /// 줄들을 문단·표·그림 덩어리로 다시 짠다. `raster`를 주면 그 쪽을 그려서 그래프 영역을 그림으로 잘라 낸다.
     static func assemble(_ input: [PDFLine], raster: ((Int) -> PageRaster?)? = nil) -> [DocumentParagraph] {
+        var margins: DocumentMargins?
+        return assemble(input, rules: [], margins: &margins, raster: raster)
+    }
+
+    /// 문단 하나가 PDF에서 놓였던 자리(문단 사이 간격·구분선을 나중에 맞출 때 쓴다)
+    private struct Placement {
+        var index: Int
+        var page: Int
+        /// 마지막 줄이 놓인 쪽(쪽을 넘어 이어진 문단이면 page와 다르다)
+        var lastPage: Int
+        var firstTop: CGFloat
+        var lastTop: CGFloat
+        var lastBottom: CGFloat
+        var size: CGFloat
+        var lineSpacing: CGFloat?
+        var shaped: Bool
+    }
+
+    /// `rules`: 쪽 안의 가로 구분선(문단 위·아래 선으로 붙인다). `margins`: 본문 글이 놓인 자리에서 잰 쪽 여백을 돌려준다.
+    /// 정렬(가운데·오른쪽·양쪽)·좌우 들여쓰기·줄 간격·문단 사이 간격도 줄들이 놓인 자리에서 잰다(여러 단으로 짠 쪽은 빼고).
+    static func assemble(_ input: [PDFLine], rules: [PDFRule], margins: inout DocumentMargins?,
+                         raster: ((Int) -> PageRaster?)? = nil) -> [DocumentParagraph] {
         // 쪽 번호: 쪽 위·아래 가장자리에서 그 높이에 혼자 있는 숫자(나란히 다른 글이 있으면 성적 카드 같은 내용이다)
         let all = input.enumerated().filter { index, line in
             guard isPageNumber(line) else { return true }
@@ -473,6 +592,64 @@ enum PDFTextExtractor {
         let columnWidth = widths.isEmpty ? (lines.map(\.width).max() ?? 0) : widths[Int(Double(widths.count - 1) * 0.9)]
         let spacing = koreanSpacing(for: lines, body: body, columnWidth: columnWidth)
 
+        // 본문 단의 왼쪽·오른쪽 끝: 여러 단으로 짠 쪽은 빼고, 본문 크기의 긴 줄들로 잰다
+        var multiColumnPages = Set<Int>()
+        for page in Set(all.map(\.page)) {
+            let pageLines = all.filter { $0.page == page }
+            if PDFLayout.isMultiColumn(Array(pageLines.indices), in: pageLines, body: body) { multiColumnPages.insert(page) }
+        }
+        let wide = lines.filter { !multiColumnPages.contains($0.page) && sameSize($0.fontSize, body) && $0.width >= columnWidth * 0.5 }
+        let columnLeft = wide.map(\.minX).min() ?? 0
+        let columnRight = wide.map { $0.minX + $0.width }.max() ?? 0
+        let canShape = !wide.isEmpty && columnRight - columnLeft > body * 10
+        var placements: [Placement] = []
+        var currentLines: [PDFLine] = []
+
+        /// 줄들이 놓인 자리로 정렬·들여쓰기·줄 간격을 잰다
+        func shape(_ paragraph: inout DocumentParagraph, lines all: [PDFLine]) -> Bool {
+            // 쪽을 넘어간 문단은 첫 쪽에 놓인 줄로 잰다
+            guard canShape, let first = all.first, !multiColumnPages.contains(first.page) else { return false }
+            let group = all.filter { $0.page == first.page }
+            let snap = { (v: CGFloat) -> CGFloat in abs(v) < body * 0.3 ? 0 : (v * 10).rounded() / 10 }
+            let lefts = group.map(\.minX), rights = group.map { $0.minX + $0.width }
+            // 가운데 정렬: 줄마다 왼쪽·오른쪽 빈 곳이 같다(내어쓴 문단처럼 한쪽만 들어간 줄이 있으면 아니다)
+            let centered = group.allSatisfy { abs(($0.minX - columnLeft) - (columnRight - $0.minX - $0.width)) < body * 1.2 }
+                && group.contains { $0.minX - columnLeft > body }
+            if group.count == 1 {
+                let left = lefts[0] - columnLeft, right = columnRight - rights[0]
+                if centered && left > body * 2 {
+                    paragraph.alignment = .center
+                } else if right < body * 0.6 && left > body * 2 {
+                    paragraph.alignment = .right
+                } else {
+                    paragraph.alignment = .left
+                    paragraph.leftIndent = max(0, snap(left))
+                }
+            } else {
+                let rest = lefts.dropFirst()
+                let leftEdge = rest.min()!
+                let maxRight = rights.max()!
+                let spread = (lefts.max()! - lefts.min()!)
+                if centered {
+                    paragraph.alignment = .center
+                } else if spread > body * 2 && rights.allSatisfy({ maxRight - $0 < body * 0.6 }) && columnRight - maxRight < body * 0.6 {
+                    paragraph.alignment = .right
+                } else {
+                    let full = rights.dropLast().allSatisfy { maxRight - $0 < body * 0.6 }
+                    paragraph.alignment = full ? .justify : .left
+                    paragraph.leftIndent = max(0, snap(leftEdge - columnLeft))
+                    paragraph.firstLineIndent = snap(lefts[0] - leftEdge)
+                    // 꽉 찬 줄이 없으면 오른쪽 끝을 알 수 없다: 왼쪽만큼 들여 썼다고 본다(다음 낱말이 밀려나지 않게 더 좁히지는 않는다)
+                    let right = max(0, snap(columnRight - maxRight))
+                    paragraph.rightIndent = full ? right : min(right, paragraph.leftIndent)
+                }
+                let steps = zip(group, group.dropFirst()).map { $1.top - $0.top }
+                let average = steps.reduce(0, +) / CGFloat(steps.count)
+                paragraph.lineSpacing = min(max((average / max(first.fontSize, 1) * 100).rounded() / 100, 0.8), 3)
+            }
+            return true
+        }
+
         var paragraphs: [DocumentParagraph] = []
         var current: [DocumentRun] = []
         var currentSize: CGFloat = 0
@@ -491,6 +668,8 @@ enum PDFTextExtractor {
             runs[runs.count - 1].text = runs[runs.count - 1].text.replacingOccurrences(of: #"\s+$"#, with: "", options: .regularExpression)
             runs.removeAll { $0.text.isEmpty }
             current = []
+            let group = currentLines
+            currentLines = []
             guard !runs.isEmpty else { pendingBreak = pendingBreak || currentBreak; lineCount = 0; return }
             let text = runs.map(\.text).joined()
             var level: Int?
@@ -498,7 +677,17 @@ enum PDFTextExtractor {
             else if currentSize >= body * 1.2, text.count <= 120 { level = 2 }
             else if lineCount == 1, runs.allSatisfy(\.bold), text.count <= 60, !endsSentence(text), !isListItem(text),
                     !isCaption(text) { level = 3 }   // 표·그림 제목은 굵은 보통 문단으로 둔다
-            paragraphs.append(DocumentParagraph(runs: runs, headingLevel: level, pageBreakBefore: currentBreak))
+            if level != nil {
+                // 제목도 PDF의 글자 크기 그대로(쓰는 쪽이 제목 크기로 키우지 않게)
+                for i in runs.indices where runs[i].fontSize == nil { runs[i].fontSize = (currentSize * 100).rounded() / 100 }
+            }
+            var paragraph = DocumentParagraph(runs: runs, headingLevel: level, pageBreakBefore: currentBreak)
+            let shaped = shape(&paragraph, lines: group)
+            if let first = group.first, let last = group.last {
+                placements.append(Placement(index: paragraphs.count, page: first.page, lastPage: last.page, firstTop: first.top, lastTop: last.top,
+                                            lastBottom: last.bottom, size: first.fontSize, lineSpacing: paragraph.lineSpacing, shaped: shaped))
+            }
+            paragraphs.append(paragraph)
             lineCount = 0
         }
 
@@ -525,22 +714,33 @@ enum PDFTextExtractor {
                 // 문장이 끝난 뒤 굵은 조각으로 시작하는 줄(줄 전체가 굵은 건 아님) = 굵은 첫 문장으로 여는 새 문단
                 let boldOpening = prevEnds && line.runs.count > 1 && line.runs[0].bold
                     && letterCount(line.runs[0].text) >= 2 && !line.runs.allSatisfy(\.bold)
+                // 목록 항목으로 시작하는 줄. 숫자 마커("420. …")는 앞 줄이 꽉 찬 문장 중간이면 아니다(줄 머리로 넘어온 숫자일 수 있다)
+                let numbered = line.text.trimmingCharacters(in: .whitespaces).first?.isNumber == true
+                let listStart = isListItem(line.text) && (!numbered || prevEnds || isListItem(prev.text) || prev.width < columnWidth * 0.7)
+                // 줄 전체 글자색이 바뀌었다(색 있는 소제목 다음 검은 본문 같은 것)
+                let prevColors = Set(prev.runs.map(\.colorHex)), lineColors = Set(line.runs.map(\.colorHex))
+                let colorChanged = prevColors.count == 1 && lineColors.count == 1 && prevColors != lineColors
                 if line.page != prev.page {
-                    startNew = prevEnds || sizeChanged || boldLabel || boldOpening || isListItem(line.text)
+                    startNew = prevEnds || sizeChanged || boldLabel || boldOpening || colorChanged || listStart
                 } else {
                     let gap = line.top - prev.bottom
                     let shortPrev = prev.width < columnWidth * 0.7
                     let indented = line.minX - currentLeft > body * 1.2
+                    // 내어쓴 항목(참고문헌 등)이 끝나고 다음 항목이 다시 왼쪽 끝에서 시작한다
+                    let outdented = prevEnds && prev.minX - line.minX > body * 0.8
                     startNew = sizeChanged
                         || gap > bigGap
                         || boldLabel
                         || boldOpening
-                        || isListItem(line.text)
+                        || colorChanged
+                        || listStart
+                        || outdented
                         || (prevEnds && (shortPrev || indented || gap > looseGap))
                 }
             }
             if startNew {
                 flush()
+                currentLines = [line]
                 current = line.runs
                 currentSize = line.fontSize
                 currentLeft = line.minX
@@ -551,11 +751,77 @@ enum PDFTextExtractor {
                 let mid = (line.top + line.bottom) / 2
                 let beside = line.page == prev.page && mid >= prev.top && mid <= prev.bottom && line.minX >= prev.minX + prev.width
                 join(&current, with: line.runs, spacing: spacing, beside: beside)
+                currentLines.append(line)
+                // 문단이 쪽을 넘어 이어졌다: 쪽은 이 문단 안에서 넘어가니 다음 덩어리 앞에서 또 넘기지 않는다
+                if line.page != prev.page { pendingBreak = false }
             }
             lineCount += 1
             previous = line
         }
         flush()
+        if canShape { arrange(&paragraphs, placements: placements, rules: rules, body: body, left: columnLeft, right: columnRight,
+                              pageWidth: nil, lines: lines, margins: &margins) }
         return paragraphs
+    }
+
+    /// 문단 사이 간격·쪽 여백·구분선을 PDF에 놓였던 자리대로 맞춘다.
+    /// 간격은 "앞 문단 마지막 줄 위 → 이 문단 첫 줄 위" 거리에서 앞 줄 높이(글자 크기 × 줄 간격)를 뺀 만큼.
+    private static func arrange(_ paragraphs: inout [DocumentParagraph], placements: [Placement], rules: [PDFRule], body: CGFloat,
+                                left: CGFloat, right: CGFloat, pageWidth: CGFloat?, lines: [PDFLine], margins: inout DocumentMargins?) {
+        guard !placements.isEmpty else { return }
+        // 한 줄짜리 문단의 줄 간격: 이 문서 본문의 보통 줄 간격
+        let spacings = placements.compactMap(\.lineSpacing).sorted()
+        let typical = spacings.isEmpty ? 1.6 : spacings[spacings.count / 2]
+        var shapedPlacements = placements
+        for i in shapedPlacements.indices where shapedPlacements[i].shaped && shapedPlacements[i].lineSpacing == nil {
+            shapedPlacements[i].lineSpacing = typical
+            paragraphs[shapedPlacements[i].index].lineSpacing = typical
+        }
+        // 쪽 여백: 본문 단 왼쪽·오른쪽, 쪽마다 첫 줄 위·마지막 줄 아래 중 가장 좁은 곳
+        let pageHeight = lines.first?.pageHeight ?? 842
+        let tops = Dictionary(grouping: lines, by: \.page).mapValues { $0.map(\.top).min()! }
+        let bottoms = Dictionary(grouping: lines, by: \.page).mapValues { $0.map(\.bottom).max()! }
+        let marginTop = max(tops.values.min() ?? 56, 14)
+        let marginBottom = max(pageHeight - (bottoms.values.max() ?? pageHeight - 56) - 6, 14)
+        let pageWidthGuess = pageWidth ?? (left + right)  // 단이 가운데 놓였다고 보고 오른쪽 여백 = 왼쪽 여백
+        margins = DocumentMargins(top: marginTop, left: max(left, 14), bottom: marginBottom, right: max(pageWidthGuess - right, 14))
+
+        for (n, place) in shapedPlacements.enumerated() where place.shaped {
+            var before: CGFloat
+            let previous = n > 0 ? shapedPlacements[n - 1] : nil
+            let afterBlock = place.index > 0 && (previous == nil || previous!.index != place.index - 1)
+            if afterBlock {
+                before = body * 0.6                         // 표·그림 다음
+            } else if let previous, previous.lastPage == place.page {
+                let height = previous.size * (previous.lineSpacing ?? typical)
+                before = place.firstTop - previous.lastTop - height
+            } else {
+                before = place.firstTop - marginTop        // 쪽 맨 위 문단
+            }
+            paragraphs[place.index].spaceBefore = max(0, (before * 10).rounded() / 10)
+            paragraphs[place.index].spaceAfter = 0
+        }
+
+        // 구분선: 글 줄과 겹치지 않는(밑줄이 아닌) 넉넉한 가로줄을 위 문단의 아래 선으로, 위 문단이 없으면 아래 문단의 위 선으로
+        let columnWidth = right - left
+        for rule in rules where rule.maxX - rule.minX >= columnWidth * 0.4 {
+            let crossesText = lines.contains { $0.page == rule.page && rule.y >= $0.top - 1 && rule.y <= $0.bottom + 2
+                && rule.maxX > $0.minX && rule.minX < $0.minX + $0.width }
+            guard !crossesText else { continue }
+            let fullWidth = rule.minX <= left + body && rule.maxX >= right - body
+            let above = shapedPlacements.last { $0.shaped && $0.lastPage == rule.page && $0.lastBottom <= rule.y + 1 }
+            let below = shapedPlacements.first { $0.shaped && $0.page == rule.page && $0.firstTop >= rule.y - 1 }
+            if let above, below == nil || below!.index == above.index + 1 {
+                let gap = max(0, rule.y - above.lastBottom)
+                paragraphs[above.index].ruleBelow = DocumentRule(colorHex: rule.colorHex, width: rule.width, gap: gap, fullWidth: fullWidth)
+                if let below, let space = paragraphs[below.index].spaceBefore {
+                    paragraphs[below.index].spaceBefore = max(0, space - gap - rule.width)
+                }
+            } else if let below {
+                let gap = max(0, below.firstTop - rule.y)
+                paragraphs[below.index].ruleAbove = DocumentRule(colorHex: rule.colorHex, width: rule.width, gap: gap, fullWidth: fullWidth)
+                if let space = paragraphs[below.index].spaceBefore { paragraphs[below.index].spaceBefore = max(0, space - gap - rule.width) }
+            }
+        }
     }
 }

@@ -379,6 +379,7 @@ public enum RichDocumentEditing {
             }
             paragraph.leftIndent = style.headIndent
             paragraph.firstLineIndent = style.firstLineHeadIndent - style.headIndent
+            if style.tailIndent < 0 { paragraph.rightIndent = -style.tailIndent }
             if style.paragraphSpacingBefore != RichStyle.defaultSpaceBefore(heading: heading) { paragraph.spaceBefore = style.paragraphSpacingBefore }
             if style.paragraphSpacing != RichStyle.defaultSpaceAfter(heading: heading) { paragraph.spaceAfter = style.paragraphSpacing }
             if style.lineHeightMultiple > 0 { paragraph.lineSpacing = style.lineHeightMultiple }

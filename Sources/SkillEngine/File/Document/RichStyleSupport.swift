@@ -9,6 +9,9 @@ public extension NSAttributedString.Key {
     static let hanlabongFontName = NSAttributedString.Key("HanlabongFontName")
     /// "이 문단은 본문이다" 표시: 크기가 커도 제목으로 짐작하지 않게(writer가 본문 글에 단다)
     static let hanlabongPlainBody = NSAttributedString.Key("HanlabongPlainBody")
+    /// 문단 위·아래 구분선(DocumentRule). PDF로 그릴 때 선을 긋는다
+    static let hanlabongRuleAbove = NSAttributedString.Key("HanlabongRuleAbove")
+    static let hanlabongRuleBelow = NSAttributedString.Key("HanlabongRuleBelow")
 }
 
 enum RichStyle {
@@ -46,8 +49,21 @@ enum RichStyle {
                 if italic { found = manager.convert(found, toHaveTrait: .italicFontMask) }
                 return found
             }
+            // 이 맥에 없는 글꼴: 같은 계열의 맥 글꼴로(바탕·명조 → 애플명조, 돋움·고딕 → 애플 SD 산돌고딕, 라틴 세리프 → Times New Roman)
+            if let stand = standIn(for: name), stand != name { return font(name: stand, size: size, bold: bold, italic: italic) }
         }
         return RichDocumentWriter.font(size: size, bold: bold, italic: italic)
+    }
+
+    /// 없는 글꼴 대신 쓸 맥 글꼴(대신할 게 없으면 nil = 시스템 글꼴)
+    static func standIn(for name: String) -> String? {
+        let lower = name.lowercased()
+        let korean = name.unicodeScalars.contains { (0xAC00...0xD7A3).contains($0.value) }
+        switch PDFContentScan.kind(of: name) {
+        case .serif: return korean || lower.contains("batang") || lower.contains("myungjo") || lower.contains("myeongjo") ? "AppleMyungjo" : "Times New Roman"
+        case .mono: return "Menlo"
+        case .sans: return korean || ["gothic", "dotum", "gulim", "malgun"].contains(where: lower.contains) ? "Apple SD Gothic Neo" : nil
+        }
     }
 
     // MARK: 색
@@ -90,6 +106,7 @@ enum RichStyle {
         let left = max(0, p.leftIndent.isFinite ? p.leftIndent : 0)
         style.headIndent = left
         style.firstLineHeadIndent = max(0, left + (p.firstLineIndent.isFinite ? p.firstLineIndent : 0))
+        if p.rightIndent.isFinite, p.rightIndent > 0 { style.tailIndent = -p.rightIndent }
         if let multiple = p.lineSpacing, multiple.isFinite, multiple > 0 {
             style.lineHeightMultiple = multiple
             style.lineSpacing = 0
@@ -98,6 +115,9 @@ enum RichStyle {
         }
         style.paragraphSpacing = max(0, p.spaceAfter ?? defaultSpaceAfter(heading: heading))
         style.paragraphSpacingBefore = max(0, p.spaceBefore ?? defaultSpaceBefore(heading: heading))
+        // 구분선이 차지하는 자리(한글에서도 문단 선은 그만큼 자리를 차지한다)
+        if let rule = p.ruleBelow { style.paragraphSpacing += rule.gap + rule.width }
+        if let rule = p.ruleAbove { style.paragraphSpacingBefore += rule.gap + rule.width }
         return style
     }
 

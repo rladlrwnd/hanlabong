@@ -45,6 +45,14 @@ enum HwpxReader {
         var script = 0
         var colorHex: String?
         var fontName: String?
+        /// 라틴 글자 글꼴(한글 글꼴과 다를 때). 한글이 없는 글에는 이것을 쓴다
+        var latinName: String?
+
+        func font(for text: String) -> String? {
+            guard let latinName else { return fontName }
+            let hasKorean = text.unicodeScalars.contains { (0xAC00...0xD7A3).contains($0.value) || (0x3130...0x318F).contains($0.value) || (0x4E00...0x9FFF).contains($0.value) }
+            return hasKorean ? fontName : latinName
+        }
     }
     private struct ParaShape {
         var headingType = "NONE"
@@ -55,6 +63,9 @@ enum HwpxReader {
         var alignment: DocumentAlignment?
         var intent: CGFloat?
         var left: CGFloat?
+        var right: CGFloat?
+        var ruleAbove: DocumentRule?
+        var ruleBelow: DocumentRule?
         var prev: CGFloat?
         var next: CGFloat?
         var lineType = "PERCENT"
@@ -75,6 +86,7 @@ enum HwpxReader {
         var styles: [String: ParaStyle] = [:]
         var faces: [String: [String: String]] = [:]       // 언어 → 글꼴 번호 → 이름
         var borderFills: [String: Bool] = [:]             // 테두리·배경 번호 → 선이 하나라도 있는가
+        var edgeLines: [String: (top: DocumentRule?, bottom: DocumentRule?)] = [:]   // 테두리 번호 → 위·아래 선(문단 선용)
         var binaryItems: [String: String] = [:]          // 그림 번호 → 패키지 안 경로
         var blocks = ReaderBlocks()
         var pageSize: CGSize?
@@ -137,6 +149,14 @@ enum HwpxReader {
                     guard let type = node.child(side)?.attr("type")?.uppercased() else { return false }
                     return type != "NONE"
                 }
+                func edge(_ side: String) -> DocumentRule? {
+                    guard let line = node.child(side), let type = line.attr("type")?.uppercased(), type != "NONE" else { return nil }
+                    let mm = Double((line.attr("width") ?? "0.12").components(separatedBy: " ").first ?? "") ?? 0.12
+                    var color = (line.attr("color") ?? "#000000").uppercased()
+                    if color.hasPrefix("#") { color.removeFirst() }
+                    return DocumentRule(colorHex: color.count == 6 ? color : "000000", width: CGFloat(mm * 72 / 25.4))
+                }
+                if edge("leftBorder") == nil && edge("rightBorder") == nil { edgeLines[id] = (edge("topBorder"), edge("bottomBorder")) }
             }
             for node in chars {
                 guard let id = node.attr("id") else { continue }
@@ -153,6 +173,7 @@ enum HwpxReader {
                     for (lang, key) in [("HANGUL", "hangul"), ("LATIN", "latin")] {
                         if let fid = ref.attr(key), let name = faces[lang]?[fid], !name.isEmpty { shape.fontName = name; break }
                     }
+                    if let fid = ref.attr("latin"), let name = faces["LATIN"]?[fid], !name.isEmpty, name != shape.fontName { shape.latinName = name }
                 }
                 charShapes[id] = shape
             }
@@ -182,8 +203,17 @@ enum HwpxReader {
                     }
                     shape.intent = value("intent")
                     shape.left = value("left")
+                    shape.right = value("right")
                     shape.prev = value("prev")
                     shape.next = value("next")
+                }
+                // 문단 위·아래 선(왼쪽·오른쪽 선까지 있는 상자 테두리는 선으로 옮기지 않는다)
+                if let border = node.child("border"), let fill = border.attr("borderFillIDRef"), let lines = edgeLines[fill],
+                   lines.top != nil || lines.bottom != nil {
+                    func pt(_ name: String) -> CGFloat { CGFloat(border.attr(name).flatMap(Double.init) ?? 0) / 100 }
+                    let full = border.attr("ignoreMargin") == "1"
+                    shape.ruleAbove = lines.top.map { var r = $0; r.gap = pt("offsetTop"); r.fullWidth = full; return r }
+                    shape.ruleBelow = lines.bottom.map { var r = $0; r.gap = pt("offsetBottom"); r.fullWidth = full; return r }
                 }
                 if let (line, doubled) = Self.shapeNode(node, "lineSpacing"), let v = line.attr("value").flatMap(Double.init) {
                     shape.known = true
@@ -235,7 +265,7 @@ enum HwpxReader {
                 run.script = shape.script
                 run.colorHex = shape.colorHex
                 run.fontSize = CGFloat(shape.height) / 100
-                run.fontName = shape.fontName
+                run.fontName = shape.font(for: text)
                 run.linkURL = link
                 if case .runs(var runs)? = pieces.last {
                     pieces.removeLast()
@@ -257,6 +287,9 @@ enum HwpxReader {
             guard shape.known else { return }
             paragraph.alignment = shape.alignment
             paragraph.leftIndent = shape.left ?? 0
+            paragraph.rightIndent = max(0, shape.right ?? 0)
+            paragraph.ruleAbove = shape.ruleAbove
+            paragraph.ruleBelow = shape.ruleBelow
             paragraph.firstLineIndent = shape.intent ?? 0
             paragraph.spaceBefore = shape.prev
             paragraph.spaceAfter = shape.next
@@ -354,7 +387,7 @@ enum HwpxReader {
                         state.add(text, shape: shape)
                         if !state.plain, !text.allSatisfy({ $0.isWhitespace }) {
                             heightHistogram[shape.height, default: 0] += text.count
-                            if let name = shape.fontName { fontHistogram[name, default: 0] += text.count }
+                            if let name = shape.font(for: text) { fontHistogram[name, default: 0] += text.count }
                         }
                     case "tbl":
                         guard depth < 40 else { continue }

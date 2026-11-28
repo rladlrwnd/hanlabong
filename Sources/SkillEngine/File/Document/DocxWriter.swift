@@ -196,14 +196,25 @@ enum DocxWriter {
         var xml = ""
         if let level = paragraph.headingLevel { xml += #"<w:pStyle w:val="Heading\#(level)"/>"# }
         if paragraph.pageBreakBefore { xml += "<w:pageBreakBefore/>" }
+        if paragraph.ruleAbove != nil || paragraph.ruleBelow != nil {
+            // 문단 위·아래 선: 굵기는 1/8pt, 글자와의 거리는 pt(워드 한도 31pt)
+            func edge(_ name: String, _ rule: DocumentRule?) -> String {
+                guard let rule else { return "" }
+                let size = min(max(Int((rule.width * 8).rounded()), 2), 96), space = min(max(Int(rule.gap.rounded()), 0), 31)
+                return #"<w:\#(name) w:val="single" w:sz="\#(size)" w:space="\#(space)" w:color="\#(rule.colorHex)"/>"#
+            }
+            xml += "<w:pBdr>" + edge("top", paragraph.ruleAbove) + edge("bottom", paragraph.ruleBelow) + "</w:pBdr>"
+        }
         var spacing = ""
         if let before = paragraph.spaceBefore { spacing += #" w:before="\#(Int((before * 20).rounded()))""# }
         if let after = paragraph.spaceAfter { spacing += #" w:after="\#(Int((after * 20).rounded()))""# }
         if let line = paragraph.lineSpacing, line > 0 { spacing += #" w:line="\#(Int((line * 240).rounded()))" w:lineRule="auto""# }
         if !spacing.isEmpty { xml += "<w:spacing\(spacing)/>" }
         let left = Int((paragraph.leftIndent * 20).rounded()), first = Int((paragraph.firstLineIndent * 20).rounded())
-        if left != 0 || first != 0 {
+        let right = Int((max(0, paragraph.rightIndent) * 20).rounded())
+        if left != 0 || first != 0 || right != 0 {
             var ind = #" w:left="\#(left)""#
+            if right != 0 { ind += #" w:right="\#(right)""# }
             if first > 0 { ind += #" w:firstLine="\#(first)""# } else if first < 0 { ind += #" w:hanging="\#(-first)""# }
             xml += "<w:ind\(ind)/>"
         }

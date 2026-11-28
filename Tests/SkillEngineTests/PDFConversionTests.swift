@@ -227,7 +227,11 @@ struct PDFConversionTests {
 
         // 3) 제목 스타일·쪽 크기
         let documentXML = DocxWriter.body(try PDFTextExtractor.extract(PDFDocument(url: pdf)!))
-        #expect(documentXML.contains(#"<w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">사진 작업 보고서"#))
+        // 제목 문단은 Heading1, 글자는 굵게(PDF의 크기·간격도 함께 옮기므로 그 사이 속성은 따지지 않는다)
+        let heading = try #require(documentXML.range(of: #"<w:pStyle w:val="Heading1"/>"#))
+        let headingText = try #require(documentXML.range(of: "사진 작업 보고서"))
+        #expect(heading.upperBound < headingText.lowerBound)
+        #expect(documentXML[heading.upperBound..<headingText.lowerBound].contains("<w:b/>"))
         #expect(documentXML.contains(#"<w:pStyle w:val="Heading2"/>"#))
         #expect(documentXML.contains(#"<w:pgSz w:w="11900" w:h="16840"/>"#))
     }

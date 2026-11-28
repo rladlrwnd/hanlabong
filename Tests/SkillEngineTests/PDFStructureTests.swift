@@ -135,7 +135,9 @@ struct PDFStructureTests {
         #expect(a.map(\.pageBreakBefore) == b.map(\.pageBreakBefore))
     }
 
-    @Test func sentenceRunningOverThePageKeepsThePageBreakForTheNextBlock() {
+    /// 쪽을 넘어 이어진 문단이 있으면 쪽은 그 문단 안에서 넘어간다. 다음 덩어리 앞에서 또 쪽을 넘기면
+    /// 원본에서는 꽉 찼던 다음 쪽이 거의 비고 쪽이 하나 더 생긴다.
+    @Test func sentenceRunningOverThePageDoesNotForceAnotherPageBreak() {
         func line(_ text: String, page: Int, row: Int, width: CGFloat = 450) -> PDFLine {
             let top = 80 + CGFloat(row) * 14
             return PDFLine(page: page, runs: [DocumentRun(text)], minX: 72, top: top, bottom: top + 11,
@@ -148,7 +150,7 @@ struct PDFStructureTests {
             line("새 문단.", page: 1, row: 2, width: 60),
         ])
         #expect(blocks.map(\.text) == ["첫 쪽 문단입니다.", "이 문장은 쪽 끝에서 끊겼지만 다음 쪽에서 이어진다.", "새 문단."])
-        #expect(blocks.map(\.pageBreakBefore) == [false, false, true])
+        #expect(blocks.map(\.pageBreakBefore) == [false, false, false])
     }
 
     @Test func twoColumnProseIsNotATable() {

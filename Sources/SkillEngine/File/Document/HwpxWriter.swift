@@ -1,3 +1,4 @@
+import CoreText
 import CoreGraphics
 import Foundation
 
@@ -19,12 +20,25 @@ enum HwpxWriter {
         var color: String?
         var height = 1000
         var font = 0
+        /// 한글·한자·일본 글자에 쓸 글꼴(라틴 전용 글꼴이면 같은 계열의 한글 글꼴)
+        var hangul = 0
+    }
+
+    /// 문단 위·아래 선
+    private struct BorderKey: Hashable {
+        var top: Line?
+        var bottom: Line?
+        struct Line: Hashable { var color: String; var width: String }
     }
 
     private struct ParaKey: Hashable {
         var align = "JUSTIFY"
-        var intent = 0, left = 0, prev = 0, next = 800
+        var intent = 0, left = 0, right = 0, prev = 0, next = 800
         var line = 160
+        /// 문단 테두리(borderFill 번호, 1 = 없음)와 글자와의 거리
+        var border = 1
+        var borderTop = 0, borderBottom = 0
+        var ignoreMargin = false
     }
 
     private final class Styles {
@@ -32,13 +46,19 @@ enum HwpxWriter {
         let bodyHeight: Int
         private(set) var chars: [CharKey] = []
         private(set) var paras: [ParaKey] = []
+        private(set) var borders: [BorderKey] = []
         private var charIndex: [CharKey: Int] = [:]
         private var paraIndex: [ParaKey: Int] = [:]
+        private var borderIndex: [BorderKey: Int] = [:]
+        private(set) var bodyHangul = 0
+        /// 문단 테두리 borderFill 번호는 표 칸용(1~4) 다음부터
+        static let firstBorderID = 5
 
         init(bodyFont: String, bodyHeight: Int) {
             fonts = [bodyFont]
             self.bodyHeight = bodyHeight
-            _ = char(CharKey(height: bodyHeight))                                     // 0: 본문
+            bodyHangul = hangulPartner(bodyFont).map(font) ?? 0
+            _ = char(base(height: bodyHeight))                                         // 0: 본문
             _ = para(ParaKey())                                                         // 0: 본문 문단
             _ = para(ParaKey(align: "LEFT", next: 0, line: 130))                        // 1: 표 칸 안 문단
         }
@@ -48,6 +68,25 @@ enum HwpxWriter {
             if let index = fonts.firstIndex(of: name) { return index }
             fonts.append(name)
             return fonts.count - 1
+        }
+
+        /// 본문 글꼴로 쓰는 기본 글자 모양
+        func base(height: Int, bold: Bool = false) -> CharKey {
+            CharKey(bold: bold, height: height, font: 0, hangul: bodyHangul)
+        }
+
+        /// 라틴 글자 글꼴과 한글 글꼴 번호
+        func fontPair(_ name: String?) -> (latin: Int, hangul: Int) {
+            guard let name, !name.isEmpty else { return (0, bodyHangul) }
+            let latin = font(name)
+            return (latin, hangulPartner(name).map(font) ?? latin)
+        }
+
+        func border(_ key: BorderKey) -> Int {
+            if let id = borderIndex[key] { return id }
+            borders.append(key)
+            borderIndex[key] = Self.firstBorderID + borders.count - 1
+            return Self.firstBorderID + borders.count - 1
         }
 
         func char(_ key: CharKey) -> Int {
@@ -66,8 +105,9 @@ enum HwpxWriter {
 
         /// 글 조각의 글자 모양 번호. 제목이면 굵게·제목 크기(조각에 크기가 있으면 그것)
         func char(_ run: DocumentRun, heading: Int?) -> Int {
+            let fonts = fontPair(run.fontName)
             var key = CharKey(bold: run.bold, italic: run.italic, underline: run.underline, strike: run.strike, script: run.script,
-                              color: run.colorHex?.uppercased(), height: bodyHeight, font: font(run.fontName))
+                              color: run.colorHex?.uppercased(), height: bodyHeight, font: fonts.latin, hangul: fonts.hangul)
             if let heading {
                 key.bold = true
                 key.height = [1800, 1400, 1100][min(max(heading, 1), 3) - 1]
@@ -86,11 +126,46 @@ enum HwpxWriter {
             }
             key.intent = Int((paragraph.firstLineIndent * 100).rounded())
             key.left = Int((paragraph.leftIndent * 100).rounded())
+            key.right = Int((max(0, paragraph.rightIndent) * 100).rounded())
+            if paragraph.ruleAbove != nil || paragraph.ruleBelow != nil {
+                func line(_ rule: DocumentRule?) -> BorderKey.Line? {
+                    rule.map { BorderKey.Line(color: "#" + $0.colorHex.uppercased(), width: HwpxWriter.borderWidth($0.width)) }
+                }
+                key.border = border(BorderKey(top: line(paragraph.ruleAbove), bottom: line(paragraph.ruleBelow)))
+                key.borderTop = Int(((paragraph.ruleAbove?.gap ?? 0) * 100).rounded())
+                key.borderBottom = Int(((paragraph.ruleBelow?.gap ?? 0) * 100).rounded())
+                key.ignoreMargin = (paragraph.ruleAbove ?? paragraph.ruleBelow)?.fullWidth ?? false
+            }
             key.prev = Int(((paragraph.spaceBefore ?? 0) * 100).rounded())
             key.next = Int(((paragraph.spaceAfter ?? 8) * 100).rounded())
             key.line = min(max(Int(((paragraph.lineSpacing ?? 1.6) * 100).rounded()), 50), 500)
             return para(key)
         }
+    }
+
+    /// 선 굵기 pt → 한글이 아는 굵기 값(mm) 중 가장 가까운 것
+    static func borderWidth(_ points: CGFloat) -> String {
+        let choices: [Double] = [0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0]
+        let mm = Double(points) * 25.4 / 72
+        let best = choices.min { abs($0 - mm) < abs($1 - mm) } ?? 0.12
+        return best == best.rounded() ? String(format: "%.1f mm", best) : "\(best) mm"
+    }
+
+    /// 라틴 글자만 있는 글꼴이면 한글 글자에 쓸 같은 계열 글꼴(세리프 → 함초롬바탕, 그 밖 → 함초롬돋움). 한글이 있는 글꼴이면 nil
+    static func hangulPartner(_ name: String) -> String? {
+        let lower = name.lowercased()
+        if name.unicodeScalars.contains(where: { (0xAC00...0xD7A3).contains($0.value) || (0x3130...0x318F).contains($0.value) }) { return nil }
+        let korean = ["nanum", "malgun", "apple sd", "applegothic", "applemyungjo", "batang", "dotum", "gulim", "gungsuh", "hcr",
+                      "noto sans kr", "noto serif kr", "noto sans cjk", "noto serif cjk", "pretendard", "spoqa", "source han", "kopub", "myungjo", "myeongjo"]
+        if korean.contains(where: { lower.contains($0) }) { return nil }
+        let font = CTFontCreateWithName(name as CFString, 12, nil)
+        let installed = (CTFontCopyFamilyName(font) as String).lowercased() == lower || (CTFontCopyPostScriptName(font) as String).lowercased() == lower
+        if installed {
+            var glyph: CGGlyph = 0
+            var character: UniChar = 0xAC00
+            if CTFontGetGlyphsForCharacters(font, &character, &glyph, 1), glyph != 0 { return nil }
+        }
+        return PDFContentScan.kind(of: name) == .serif ? "함초롬바탕" : "함초롬돋움"
     }
 
     static func make(_ document: RichDocument) -> Data {
@@ -123,8 +198,8 @@ enum HwpxWriter {
         let faceList = styles.fonts.enumerated().map { "<hh:font id=\"\($0.offset)\" face=\"\(RichDocumentWriter.escape($0.element))\" type=\"TTF\" isEmbedded=\"0\"/>" }.joined()
         let fonts = langs.map { "<hh:fontface lang=\"\($0)\" fontCnt=\"\(styles.fonts.count)\">\(faceList)</hh:fontface>" }.joined()
         func charPr(_ id: Int, _ key: CharKey) -> String {
-            let f = key.font
-            let ref = "hangul=\"\(f)\" latin=\"\(f)\" hanja=\"\(f)\" japanese=\"\(f)\" other=\"\(f)\" symbol=\"\(f)\" user=\"\(f)\""
+            let f = key.font, h = key.hangul
+            let ref = "hangul=\"\(h)\" latin=\"\(f)\" hanja=\"\(h)\" japanese=\"\(h)\" other=\"\(f)\" symbol=\"\(f)\" user=\"\(f)\""
             let hundred = "hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\""
             let zero = "hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\""
             let color = key.color.map { "#" + $0 } ?? "#000000"
@@ -137,7 +212,7 @@ enum HwpxWriter {
         }
         let chars = styles.chars.enumerated().map { charPr($0.offset, $0.element) }.joined()
         func paraPr(_ id: Int, _ key: ParaKey) -> String {
-            "<hh:paraPr id=\"\(id)\" tabPrIDRef=\"0\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\"><hh:align horizontal=\"\(key.align)\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hh:margin><hc:intent value=\"\(key.intent)\" unit=\"HWPUNIT\"/><hc:left value=\"\(key.left)\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"\(key.prev)\" unit=\"HWPUNIT\"/><hc:next value=\"\(key.next)\" unit=\"HWPUNIT\"/></hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"\(key.line)\" unit=\"HWPUNIT\"/><hh:border borderFillIDRef=\"1\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/></hh:paraPr>"
+            "<hh:paraPr id=\"\(id)\" tabPrIDRef=\"0\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\"><hh:align horizontal=\"\(key.align)\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hh:margin><hc:intent value=\"\(key.intent)\" unit=\"HWPUNIT\"/><hc:left value=\"\(key.left)\" unit=\"HWPUNIT\"/><hc:right value=\"\(key.right)\" unit=\"HWPUNIT\"/><hc:prev value=\"\(key.prev)\" unit=\"HWPUNIT\"/><hc:next value=\"\(key.next)\" unit=\"HWPUNIT\"/></hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"\(key.line)\" unit=\"HWPUNIT\"/><hh:border borderFillIDRef=\"\(key.border)\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"\(key.borderTop)\" offsetBottom=\"\(key.borderBottom)\" connect=\"0\" ignoreMargin=\"\(key.ignoreMargin ? 1 : 0)\"/></hh:paraPr>"
         }
         let paras = styles.paras.enumerated().map { paraPr($0.offset, $0.element) }.joined()
         func side(_ name: String, _ type: String) -> String { "<hh:\(name) type=\"\(type)\" width=\"0.12 mm\" color=\"#808080\"/>" }
@@ -150,8 +225,18 @@ enum HwpxWriter {
         }
         let gray = "<hc:fillBrush><hc:winBrush faceColor=\"#EDEDED\" hatchColor=\"#999999\" alpha=\"0\"/></hc:fillBrush>"
         let tableBorders = cellFill(2, fill: "", lines: true) + cellFill(3, fill: gray, lines: true) + cellFill(4, fill: gray, lines: false)
+        /// 문단 위·아래 선
+        func paragraphFill(_ id: Int, _ key: BorderKey) -> String {
+            func edge(_ name: String, _ line: BorderKey.Line?) -> String {
+                line.map { "<hh:\(name) type=\"SOLID\" width=\"\($0.width)\" color=\"\($0.color)\"/>" } ?? "<hh:\(name) type=\"NONE\" width=\"0.1 mm\" color=\"#000000\"/>"
+            }
+            return "<hh:borderFill id=\"\(id)\" threeD=\"0\" shadow=\"0\" centerLine=\"NONE\" breakCellSeparateLine=\"0\"><hh:slash type=\"NONE\" Crooked=\"0\" isCounter=\"0\"/><hh:backSlash type=\"NONE\" Crooked=\"0\" isCounter=\"0\"/>"
+                + edge("leftBorder", nil) + edge("rightBorder", nil) + edge("topBorder", key.top) + edge("bottomBorder", key.bottom)
+                + "<hh:diagonal type=\"SOLID\" width=\"0.1 mm\" color=\"#000000\"/></hh:borderFill>"
+        }
+        let paragraphBorders = styles.borders.enumerated().map { paragraphFill(Styles.firstBorderID + $0.offset, $0.element) }.joined()
         return """
-        <?xml version="1.0" encoding="UTF-8" standalone="yes"?><hh:head \(ns) version="1.4" secCnt="1"><hh:beginNum page="1" footnote="1" endnote="1" pic="1" tbl="1" equation="1"/><hh:refList><hh:fontfaces itemCnt="7">\(fonts)</hh:fontfaces><hh:borderFills itemCnt="4"><hh:borderFill id="1" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0"><hh:slash type="NONE" Crooked="0" isCounter="0"/><hh:backSlash type="NONE" Crooked="0" isCounter="0"/><hh:leftBorder type="NONE" width="0.1 mm" color="#000000"/><hh:rightBorder type="NONE" width="0.1 mm" color="#000000"/><hh:topBorder type="NONE" width="0.1 mm" color="#000000"/><hh:bottomBorder type="NONE" width="0.1 mm" color="#000000"/><hh:diagonal type="SOLID" width="0.1 mm" color="#000000"/></hh:borderFill>\(tableBorders)</hh:borderFills><hh:charProperties itemCnt="\(styles.chars.count)">\(chars)</hh:charProperties><hh:tabProperties itemCnt="1"><hh:tabPr id="0" autoTabLeft="0" autoTabRight="0"/></hh:tabProperties><hh:paraProperties itemCnt="\(styles.paras.count)">\(paras)</hh:paraProperties><hh:styles itemCnt="1"><hh:style id="0" type="PARA" name="바탕글" engName="Normal" paraPrIDRef="0" charPrIDRef="0" nextStyleIDRef="0" langID="1042" lockForm="0"/></hh:styles></hh:refList><hh:compatibleDocument targetProgram="HWP201X"><hh:layoutCompatibility/></hh:compatibleDocument><hh:docOption><hh:linkinfo path="" pageInherit="0" footnoteInherit="0"/></hh:docOption><hh:trackchageConfig flags="56"/></hh:head>
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?><hh:head \(ns) version="1.4" secCnt="1"><hh:beginNum page="1" footnote="1" endnote="1" pic="1" tbl="1" equation="1"/><hh:refList><hh:fontfaces itemCnt="7">\(fonts)</hh:fontfaces><hh:borderFills itemCnt="\(4 + styles.borders.count)"><hh:borderFill id="1" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0"><hh:slash type="NONE" Crooked="0" isCounter="0"/><hh:backSlash type="NONE" Crooked="0" isCounter="0"/><hh:leftBorder type="NONE" width="0.1 mm" color="#000000"/><hh:rightBorder type="NONE" width="0.1 mm" color="#000000"/><hh:topBorder type="NONE" width="0.1 mm" color="#000000"/><hh:bottomBorder type="NONE" width="0.1 mm" color="#000000"/><hh:diagonal type="SOLID" width="0.1 mm" color="#000000"/></hh:borderFill>\(tableBorders)\(paragraphBorders)</hh:borderFills><hh:charProperties itemCnt="\(styles.chars.count)">\(chars)</hh:charProperties><hh:tabProperties itemCnt="1"><hh:tabPr id="0" autoTabLeft="0" autoTabRight="0"/></hh:tabProperties><hh:paraProperties itemCnt="\(styles.paras.count)">\(paras)</hh:paraProperties><hh:styles itemCnt="1"><hh:style id="0" type="PARA" name="바탕글" engName="Normal" paraPrIDRef="0" charPrIDRef="0" nextStyleIDRef="0" langID="1042" lockForm="0"/></hh:styles></hh:refList><hh:compatibleDocument targetProgram="HWP201X"><hh:layoutCompatibility/></hh:compatibleDocument><hh:docOption><hh:linkinfo path="" pageInherit="0" footnoteInherit="0"/></hh:docOption><hh:trackchageConfig flags="56"/></hh:head>
         """
     }
 
@@ -226,7 +311,7 @@ enum HwpxWriter {
         xml += "<hp:sz width=\"\(widths.reduce(0, +))\" widthRelTo=\"ABSOLUTE\" height=\"\(heights.reduce(0, +))\" heightRelTo=\"ABSOLUTE\" protect=\"0\"/>" + positionInline
         xml += "<hp:outMargin left=\"0\" right=\"0\" top=\"0\" bottom=\"0\"/><hp:inMargin \(inMargin)/>"
         let cellHeightPt = 900
-        let normalChar = styles.char(CharKey(height: cellHeightPt)), boldChar = styles.char(CharKey(bold: true, height: cellHeightPt))
+        let normalChar = styles.char(styles.base(height: cellHeightPt)), boldChar = styles.char(styles.base(height: cellHeightPt, bold: true))
         for (rowIndex, row) in rows.enumerated() {
             let header = rowIndex < headerRows
             xml += "<hp:tr>"
