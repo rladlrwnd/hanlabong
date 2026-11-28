@@ -182,6 +182,7 @@ enum RichStyle {
     // MARK: HTML · Markdown 조각
 
     static func css(_ value: CGFloat) -> String {
+        guard value.isFinite, abs(value) < 1_000_000 else { return value.isNaN ? "0" : (value > 0 ? "1000000" : "-1000000") }
         let rounded = (value * 100).rounded() / 100
         return rounded == rounded.rounded() ? String(Int(rounded)) : String(Double(rounded))
     }
