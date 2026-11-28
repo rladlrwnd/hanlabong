@@ -59,7 +59,7 @@ public enum LayoutPDF {
             guard let r = s.range(of: "w:\(name)=\"([0-9.]+)\"", options: .regularExpression) else { return nil }
             return Double(s[r].split(separator: "\"")[1])
         }
-        let count = Int(number("num", in: cols) ?? 1)
+        let count = clampedInt(number("num", in: cols) ?? 1, 1...45)     // Word 단 수는 최대 45. 아주 큰 값이면 Int 변환이 넘쳐 죽던 것
         guard count > 1 else { return [] }
         let space = CGFloat((number("space", in: cols) ?? 720) / 20)
         let each = cols.matches(of: /<w:col\b[^>]*\/>/).map { String($0.output) }

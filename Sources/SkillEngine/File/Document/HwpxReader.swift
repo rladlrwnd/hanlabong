@@ -182,7 +182,7 @@ enum HwpxReader {
                 var shape = ParaShape()
                 if let heading = node.child("heading") {
                     shape.headingType = heading.attr("type") ?? "NONE"
-                    shape.headingLevel = heading.attr("level").flatMap(Int.init) ?? 0
+                    shape.headingLevel = min(max(heading.attr("level").flatMap(Int.init) ?? 0, 0), 9)
                     shape.headingID = heading.attr("idRef") ?? "0"
                 }
                 shape.pageBreakBefore = node.child("breakSetting")?.attr("pageBreakBefore") == "1"
@@ -404,17 +404,19 @@ enum HwpxReader {
                     case "pic":
                         if let image = picture(item) { if state.plain { cellImages.append(image) } else { state.pieces.append(.image(image)) } }
                     case "container":
-                        var pics: [OXNode] = []
-                        item.descendants("pic", into: &pics)
-                        for pic in pics { if let image = picture(pic) { if state.plain { cellImages.append(image) } else { state.pieces.append(.image(image)) } } }
-                        var boxes: [OXNode] = []
-                        item.descendants("drawText", into: &boxes)
-                        for box in boxes { addBox(box, state) }
+                        // 묶음 안의 그림·글상자. 가장 바깥 것만 모은다(글상자 안 그림·글상자는 addBox가 다시 찾는다).
+                        // descendants로 모으면 겹친 글상자를 깊이마다 또 훑어서 이상한 파일에서 멈췄다
+                        var parts: [OXNode] = []
+                        item.outermostDescendants(["pic", "drawText"], into: &parts)
+                        for part in parts {
+                            if part.name == "drawText" { addBox(part, state); continue }
+                            if let image = picture(part) { if state.plain { cellImages.append(image) } else { state.pieces.append(.image(image)) } }
+                        }
                     case "rect", "ellipse", "arc", "polygon", "curve", "connectLine", "textart":
                         if let box = item.firstDescendant("drawText") { addBox(box, state) }
-                        var pics: [OXNode] = []
-                        item.descendants("pic", into: &pics)
-                        for pic in pics { if let image = picture(pic) { if state.plain { cellImages.append(image) } else { state.pieces.append(.image(image)) } } }
+                        var parts: [OXNode] = []
+                        item.outermostDescendants(["pic", "drawText"], into: &parts)     // 글상자 안 그림은 addBox가 이미 챙김
+                        for pic in parts where pic.name == "pic" { if let image = picture(pic) { if state.plain { cellImages.append(image) } else { state.pieces.append(.image(image)) } } }
                     case "equation":
                         // 수식 스크립트 글을 그대로
                         if let script = item.firstDescendant("script")?.allText.trimmingCharacters(in: .whitespacesAndNewlines), !script.isEmpty {
@@ -604,9 +606,9 @@ enum HwpxReader {
                     let col = addr?.attr("colAddr").flatMap(Int.init) ?? runningCol
                     let row = addr?.attr("rowAddr").flatMap(Int.init) ?? rowIndex
                     let span = tc.child("cellSpan")
-                    let colSpan = max(span?.attr("colSpan").flatMap(Int.init) ?? 1, 1)
-                    let rowSpan = max(span?.attr("rowSpan").flatMap(Int.init) ?? 1, 1)
-                    runningCol = col + colSpan
+                    let colSpan = min(max(span?.attr("colSpan").flatMap(Int.init) ?? 1, 1), 1_000)
+                    let rowSpan = min(max(span?.attr("rowSpan").flatMap(Int.init) ?? 1, 1), 20_000)
+                    runningCol = min(max(col, 0), 1_000) + colSpan     // 범위 확인 전에 더하므로 먼저 줄인다(Int.max면 넘쳐서 죽음)
                     guard row >= 0, col >= 0, row < 20_000, col < 1_000 else { continue }
                     cellImages = []
                     let text = cellText(tc)
@@ -619,8 +621,9 @@ enum HwpxReader {
                 }
                 rowIndex += 1
             }
-            let rowCount = max(maxRow, min(tbl.attr("rowCnt").flatMap(Int.init) ?? 0, 20_000))
             let colCount = max(maxCol, min(tbl.attr("colCnt").flatMap(Int.init) ?? 0, 1_000))
+            // 줄 수는 속성값만 믿지 않는다(속성만으로 표 하나에 2천만 칸을 만들 수 있었다). 칸 합계 상한 안에서
+            let rowCount = min(max(maxRow, min(tbl.attr("rowCnt").flatMap(Int.init) ?? 0, 20_000)), max(1, ReaderBlocks.maxTableCells / max(colCount, 1)))
             var grid = Array(repeating: Array(repeating: "", count: colCount), count: rowCount)
             for cell in cells where cell.row < rowCount && cell.col < colCount {
                 grid[cell.row][cell.col] = cell.text

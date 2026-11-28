@@ -112,7 +112,7 @@ enum HwpxWriter {
                 key.bold = true
                 key.height = [1800, 1400, 1100][min(max(heading, 1), 3) - 1]
             }
-            if let size = run.fontSize, size > 0 { key.height = Int((size * 100).rounded()) }
+            if let size = run.fontSize, size > 0 { key.height = clampedInt(size * 100, 1...409_600) }
             return char(key)
         }
 
@@ -124,21 +124,21 @@ enum HwpxWriter {
             case .center?: key.align = "CENTER"
             default: key.align = "JUSTIFY"
             }
-            key.intent = Int((paragraph.firstLineIndent * 100).rounded())
-            key.left = Int((paragraph.leftIndent * 100).rounded())
-            key.right = Int((max(0, paragraph.rightIndent) * 100).rounded())
+            key.intent = clampedInt(paragraph.firstLineIndent * 100, -10_000_000...10_000_000)
+            key.left = clampedInt(paragraph.leftIndent * 100, -10_000_000...10_000_000)
+            key.right = clampedInt(max(0, paragraph.rightIndent) * 100, 0...10_000_000)
             if paragraph.ruleAbove != nil || paragraph.ruleBelow != nil {
                 func line(_ rule: DocumentRule?) -> BorderKey.Line? {
                     rule.map { BorderKey.Line(color: "#" + $0.colorHex.uppercased(), width: HwpxWriter.borderWidth($0.width)) }
                 }
                 key.border = border(BorderKey(top: line(paragraph.ruleAbove), bottom: line(paragraph.ruleBelow)))
-                key.borderTop = Int(((paragraph.ruleAbove?.gap ?? 0) * 100).rounded())
-                key.borderBottom = Int(((paragraph.ruleBelow?.gap ?? 0) * 100).rounded())
+                key.borderTop = clampedInt((paragraph.ruleAbove?.gap ?? 0) * 100, 0...1_000_000)
+                key.borderBottom = clampedInt((paragraph.ruleBelow?.gap ?? 0) * 100, 0...1_000_000)
                 key.ignoreMargin = (paragraph.ruleAbove ?? paragraph.ruleBelow)?.fullWidth ?? false
             }
-            key.prev = Int(((paragraph.spaceBefore ?? 0) * 100).rounded())
-            key.next = Int(((paragraph.spaceAfter ?? 8) * 100).rounded())
-            key.line = min(max(Int(((paragraph.lineSpacing ?? 1.6) * 100).rounded()), 50), 500)
+            key.prev = clampedInt((paragraph.spaceBefore ?? 0) * 100, 0...10_000_000)
+            key.next = clampedInt((paragraph.spaceAfter ?? 8) * 100, 0...10_000_000)
+            key.line = clampedInt((paragraph.lineSpacing ?? 1.6) * 100, 50...500)
             return para(key)
         }
     }
@@ -242,7 +242,7 @@ enum HwpxWriter {
 
     /// 쪽 여백(hwpunit): 쪽 짧은 변의 8%, 다만 20mm~30mm 사이
     private static func margin(_ pageSize: CGSize) -> Int {
-        min(max(Int((min(pageSize.width, pageSize.height) * 8).rounded()), 5669), 8504)
+        clampedInt(min(pageSize.width, pageSize.height) * 8, 5669...8504)
     }
 
     /// 표·그림·문단 번호를 겹치지 않게 매긴다
@@ -268,7 +268,7 @@ enum HwpxWriter {
         var widths = DocxWriter.columnWidths(rows, count: count, total: width)
         if let given = layout?.columnWidths, given.count == count, given.allSatisfy({ $0 > 0 }) {
             let sum = given.reduce(0, +)
-            widths = given.map { max(Int((Double($0 / sum) * Double(width)).rounded()), 300) }
+            widths = given.map { clampedInt(Double($0 / sum) * Double(width), 300...100_000_000) }
             widths[count - 1] = max(width - widths.dropLast().reduce(0, +), 300)
         }
         let headerRows = layout?.headerRows ?? 1
@@ -339,7 +339,7 @@ enum HwpxWriter {
         var width = Double(image.size.width) * 100, height = Double(image.size.height) * 100
         let scale = min(1, Double(maxWidth) / width, Double(maxHeight) / height)
         width = max((width * scale).rounded(), 1); height = max((height * scale).rounded(), 1)
-        let w = Int(width), h = Int(height)
+        let w = clampedInt(width, 1...100_000_000), h = clampedInt(height, 1...100_000_000)
         let identity = "<hc:transMatrix e1=\"1\" e2=\"0\" e3=\"0\" e4=\"0\" e5=\"1\" e6=\"0\"/><hc:scaMatrix e1=\"1\" e2=\"0\" e3=\"0\" e4=\"0\" e5=\"1\" e6=\"0\"/><hc:rotMatrix e1=\"1\" e2=\"0\" e3=\"0\" e4=\"0\" e5=\"1\" e6=\"0\"/>"
         return "<hp:pic id=\"\(ids.make())\" zOrder=\"0\" numberingType=\"PICTURE\" textWrap=\"TOP_AND_BOTTOM\" textFlow=\"BOTH_SIDES\" lock=\"0\" dropcapstyle=\"None\" href=\"\" groupLevel=\"0\" instid=\"\(ids.make())\" reverse=\"0\">"
             + "<hp:offset x=\"0\" y=\"0\"/><hp:orgSz width=\"\(w)\" height=\"\(h)\"/><hp:curSz width=\"\(w)\" height=\"\(h)\"/><hp:flip horizontal=\"0\" vertical=\"0\"/>"
@@ -368,18 +368,18 @@ enum HwpxWriter {
 
     private static func section(_ document: RichDocument) -> (xml: String, images: [Data], styles: Styles) {
         let pageSize = document.resolvedPageSize
-        let pageWidth = Int((pageSize.width * 100).rounded()), pageHeight = Int((pageSize.height * 100).rounded())
+        let pageWidth = clampedInt(pageSize.width * 100, 0...100_000_000), pageHeight = clampedInt(pageSize.height * 100, 0...100_000_000)
         // OWPML: 세로 쪽은 WIDELY, 가로 쪽은 NARROWLY
         let landscape = pageWidth > pageHeight ? "NARROWLY" : "WIDELY"
         let defaultMargin = margin(pageSize)
-        func unit(_ pt: CGFloat?, _ fallback: Int) -> Int { pt.map { max(Int(($0 * 100).rounded()), 0) } ?? fallback }
+        func unit(_ pt: CGFloat?, _ fallback: Int) -> Int { pt.map { clampedInt($0 * 100, 0...100_000_000) } ?? fallback }
         let marginLeft = unit(document.margins?.left, defaultMargin), marginRight = unit(document.margins?.right, defaultMargin)
         let marginTop = unit(document.margins?.top, defaultMargin), marginBottom = unit(document.margins?.bottom, defaultMargin)
         let headerDistance = marginTop / 2, footerDistance = marginBottom / 2
         let textWidth = max(pageWidth - marginLeft - marginRight, 5000), textHeight = max(pageHeight - marginTop - marginBottom, 5000)
         let ids = IDs()
         let styles = Styles(bodyFont: document.bodyFontName ?? "함초롬바탕",
-                            bodyHeight: Int(((document.bodyFontSize ?? 10) * 100).rounded()))
+                            bodyHeight: clampedInt((document.bodyFontSize ?? 10) * 100, 100...409_600))
         let secPr = "<hp:secPr id=\"\" textDirection=\"HORIZONTAL\" spaceColumns=\"1134\" tabStop=\"8000\" tabStopVal=\"4000\" tabStopUnit=\"HWPUNIT\" outlineShapeIDRef=\"0\" memoShapeIDRef=\"0\" textVerticalWidthHead=\"0\" masterPageCnt=\"0\"><hp:grid lineGrid=\"0\" charGrid=\"0\" wonggojiFormat=\"0\"/><hp:startNum pageStartsOn=\"BOTH\" page=\"0\" pic=\"0\" tbl=\"0\" equation=\"0\"/><hp:visibility hideFirstHeader=\"0\" hideFirstFooter=\"0\" hideFirstMasterPage=\"0\" border=\"SHOW_ALL\" fill=\"SHOW_ALL\" hideFirstPageNum=\"0\" hideFirstEmptyLine=\"0\" showLineNumber=\"0\"/><hp:lineNumberShape restartType=\"0\" countBy=\"0\" distance=\"0\" startNumber=\"0\"/><hp:pagePr landscape=\"\(landscape)\" width=\"\(pageWidth)\" height=\"\(pageHeight)\" gutterType=\"LEFT_ONLY\"><hp:margin header=\"\(headerDistance)\" footer=\"\(footerDistance)\" gutter=\"0\" left=\"\(marginLeft)\" right=\"\(marginRight)\" top=\"\(marginTop)\" bottom=\"\(marginBottom)\"/></hp:pagePr><hp:footNotePr><hp:autoNumFormat type=\"DIGIT\" userChar=\"\" prefixChar=\"\" suffixChar=\")\" supscript=\"0\"/><hp:noteLine length=\"-1\" type=\"SOLID\" width=\"0.12 mm\" color=\"#000000\"/><hp:noteSpacing betweenNotes=\"283\" belowLine=\"567\" aboveLine=\"850\"/><hp:numbering type=\"CONTINUOUS\" newNum=\"1\"/><hp:placement place=\"EACH_COLUMN\" beneathText=\"0\"/></hp:footNotePr><hp:endNotePr><hp:autoNumFormat type=\"DIGIT\" userChar=\"\" prefixChar=\"\" suffixChar=\")\" supscript=\"0\"/><hp:noteLine length=\"14692344\" type=\"SOLID\" width=\"0.12 mm\" color=\"#000000\"/><hp:noteSpacing betweenNotes=\"0\" belowLine=\"567\" aboveLine=\"850\"/><hp:numbering type=\"CONTINUOUS\" newNum=\"1\"/><hp:placement place=\"END_OF_DOCUMENT\" beneathText=\"0\"/></hp:endNotePr><hp:pageBorderFill type=\"BOTH\" borderFillIDRef=\"1\" textBorder=\"PAPER\" headerInside=\"0\" footerInside=\"0\" fillArea=\"PAPER\"><hp:offset left=\"1417\" right=\"1417\" top=\"1417\" bottom=\"1417\"/></hp:pageBorderFill></hp:secPr>"
 
         // 머리글·꼬리글·쪽 번호는 첫 문단 첫 run에 구역 설정과 함께

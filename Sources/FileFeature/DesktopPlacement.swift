@@ -44,14 +44,37 @@ enum DesktopPlacement {
             return "try\n set desktop position of item \"\(name)\" of desktop to {\(Int(center.x + offset.x)), \(Int(center.y + offset.y))}\nend try"
         }
         let script = "tell application \"Finder\"\n" + lines.joined(separator: "\n") + "\nend tell"
-        // Finder가 새 파일을 알아챌 시간을 조금 주고, 한 번 더 시도한다
+        // Finder가 새 파일을 알아챌 시간을 조금 주고, 한 번 더 시도한다.
+        // 메인 스레드에서 돌리지 않는다: "Finder 제어" 허락 창이 처음 뜨거나 Finder가 바쁘면
+        // Apple Event가 답을 기다리는 동안(최대 약 2분) 앱 전체가 멈췄다
         for delay in [0.6, 1.8] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                var error: NSDictionary?
-                NSAppleScript(source: script)?.executeAndReturnError(&error)
-                if let error { log.info("desktop placement failed: \(error[NSAppleScript.errorNumber] as? Int ?? 0, privacy: .public)") }
-            }
+            queue.asyncAfter(deadline: .now() + delay) { runOsascript(script) }
         }
         log.info("desktop placement: files=\(onDesktop.count, privacy: .public)")
+    }
+
+    private nonisolated static let queue = DispatchQueue(label: "app.dragedit.desktop-placement", qos: .utility)
+
+    /// osascript로 실행(셸을 거치지 않고 인자로 넘김). 20초 넘게 걸리면 끊는다
+    private nonisolated static func runOsascript(_ script: String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+        process.standardInput = FileHandle.nullDevice
+        process.standardOutput = FileHandle.nullDevice
+        let errors = Pipe()
+        process.standardError = errors
+        do { try process.run() } catch {
+            log.info("desktop placement failed to start")
+            return
+        }
+        let timer = DispatchWorkItem { if process.isRunning { process.terminate() } }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 20, execute: timer)     // 기다리는 큐와 다른 큐에서
+        let message = errors.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        timer.cancel()
+        if process.terminationStatus != 0 {
+            log.info("desktop placement failed: status=\(process.terminationStatus, privacy: .public) bytes=\(message.count, privacy: .public)")
+        }
     }
 }

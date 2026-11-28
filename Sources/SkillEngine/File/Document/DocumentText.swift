@@ -95,11 +95,22 @@ public struct DocumentImage: Equatable, Sendable {
     }
 }
 
+/// 문서 값(포인트·트윕·배수 등)을 Int로 바꾼다. NaN·무한대·아주 큰 수는 범위 안으로 줄인다.
+/// 이상한 파일의 값이 그대로 `Int(...)`에 들어가면 넘쳐서 앱이 죽는다.
+func clampedInt(_ value: Double, _ range: ClosedRange<Int> = -100_000_000...100_000_000) -> Int {
+    guard value.isFinite else { return value.isNaN ? 0 : (value > 0 ? range.upperBound : range.lowerBound) }
+    return Int(min(max(value.rounded(), Double(range.lowerBound)), Double(range.upperBound)))
+}
+
+func clampedInt(_ value: CGFloat, _ range: ClosedRange<Int> = -100_000_000...100_000_000) -> Int {
+    clampedInt(Double(value), range)
+}
+
 /// 문서의 한 덩어리. 보통은 글 문단이고, `table`이나 `image`가 있으면 그 덩어리는 표·그림이다.
 public struct DocumentParagraph: Equatable, Sendable {
     public var runs: [DocumentRun]
     /// 1 = 큰 제목, 2 = 중간 제목, 3 = 굵은 한 줄 제목. 본문은 nil.
-    public var headingLevel: Int?
+    public var headingLevel: Int? { didSet { headingLevel = Self.clampedHeading(headingLevel) } }
     /// 표: 줄 × 칸의 글자. 첫 줄은 머리줄로 본다. 있으면 `runs`는 비워 둔다
     public var table: [[String]]?
     /// 그림: 있으면 `runs`는 비우거나 그림 설명(캡션 아님)만 둔다
@@ -126,10 +137,16 @@ public struct DocumentParagraph: Equatable, Sendable {
     public init(runs: [DocumentRun], headingLevel: Int? = nil, table: [[String]]? = nil,
                 image: DocumentImage? = nil, pageBreakBefore: Bool = false) {
         self.runs = runs
-        self.headingLevel = headingLevel
+        self.headingLevel = Self.clampedHeading(headingLevel)
         self.table = table
         self.image = image
         self.pageBreakBefore = pageBreakBefore
+    }
+
+    /// 제목 단계는 1~3만. 이상한 파일의 값(음수·아주 큰 수)이 그대로 들어오면 Markdown·HTML로 바꿀 때 죽는다
+    static func clampedHeading(_ level: Int?) -> Int? {
+        guard let level else { return nil }
+        return min(max(level, 1), 3)
     }
 
     /// 글자만(표는 칸을 탭, 줄을 줄바꿈으로)

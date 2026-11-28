@@ -73,12 +73,12 @@ enum DocxWriter {
 
     /// 쓸 여백(트윕): 문서에 여백이 있으면 그것(본문이 720트윕 밑으로 줄지 않게 한도만), 없으면 위 규칙
     static func margins(for input: Input) -> (top: Int, left: Int, bottom: Int, right: Int) {
-        let width = Int((input.pageSize.width * 20).rounded()), height = Int((input.pageSize.height * 20).rounded())
+        let width = clampedInt(input.pageSize.width * 20, 0...1_000_000), height = clampedInt(input.pageSize.height * 20, 0...1_000_000)
         guard let m = input.margins else {
             let value = margin(for: input.pageSize)
             return (value, value, value, value)
         }
-        func twips(_ pt: CGFloat) -> Int { max(Int((pt * 20).rounded()), 0) }
+        func twips(_ pt: CGFloat) -> Int { clampedInt(pt * 20, 0...1_000_000) }
         var left = twips(m.left), right = twips(m.right), top = twips(m.top), bottom = twips(m.bottom)
         if left + right > width - 720 { let scale = Double(max(width - 720, 0)) / Double(max(left + right, 1)); left = Int(Double(left) * scale); right = Int(Double(right) * scale) }
         if top + bottom > height - 720 { let scale = Double(max(height - 720, 0)) / Double(max(top + bottom, 1)); top = Int(Double(top) * scale); bottom = Int(Double(bottom) * scale) }
@@ -119,7 +119,7 @@ enum DocxWriter {
     private static let namespaces = #"xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture""#
 
     static func build(_ input: Input) -> Built {
-        let pageWidth = Int((input.pageSize.width * 20).rounded()), pageHeight = Int((input.pageSize.height * 20).rounded())
+        let pageWidth = clampedInt(input.pageSize.width * 20, 0...1_000_000), pageHeight = clampedInt(input.pageSize.height * 20, 0...1_000_000)
         let m = margins(for: input)
         let textWidth = max(pageWidth - m.left - m.right, 720)
         let textHeight = max(pageHeight - m.top - m.bottom, 720)
@@ -176,7 +176,7 @@ enum DocxWriter {
             cx = max((cx * scale).rounded(), 1); cy = max((cy * scale).rounded(), 1)
             return "<w:p><w:pPr>" + (paragraph.pageBreakBefore ? "<w:pageBreakBefore/>" : "")
                 + #"<w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/>"# + justification(paragraph.alignment) + "</w:pPr>"
-                + drawing(index: index, cx: Int(cx), cy: Int(cy)) + "</w:p>"
+                + drawing(index: index, cx: clampedInt(cx, 1...1_000_000_000), cy: clampedInt(cy, 1...1_000_000_000)) + "</w:p>"
         }
         return textParagraphXML(paragraph, context, links: true)
     }
@@ -206,12 +206,12 @@ enum DocxWriter {
             xml += "<w:pBdr>" + edge("top", paragraph.ruleAbove) + edge("bottom", paragraph.ruleBelow) + "</w:pBdr>"
         }
         var spacing = ""
-        if let before = paragraph.spaceBefore { spacing += #" w:before="\#(Int((before * 20).rounded()))""# }
-        if let after = paragraph.spaceAfter { spacing += #" w:after="\#(Int((after * 20).rounded()))""# }
-        if let line = paragraph.lineSpacing, line > 0 { spacing += #" w:line="\#(Int((line * 240).rounded()))" w:lineRule="auto""# }
+        if let before = paragraph.spaceBefore { spacing += #" w:before="\#(clampedInt(before * 20, 0...1_000_000))""# }
+        if let after = paragraph.spaceAfter { spacing += #" w:after="\#(clampedInt(after * 20, 0...1_000_000))""# }
+        if let line = paragraph.lineSpacing, line > 0 { spacing += #" w:line="\#(clampedInt(line * 240, 1...1_000_000))" w:lineRule="auto""# }
         if !spacing.isEmpty { xml += "<w:spacing\(spacing)/>" }
-        let left = Int((paragraph.leftIndent * 20).rounded()), first = Int((paragraph.firstLineIndent * 20).rounded())
-        let right = Int((max(0, paragraph.rightIndent) * 20).rounded())
+        let left = clampedInt(paragraph.leftIndent * 20, -1_000_000...1_000_000), first = clampedInt(paragraph.firstLineIndent * 20, -1_000_000...1_000_000)
+        let right = clampedInt(max(0, paragraph.rightIndent) * 20, 0...1_000_000)
         if left != 0 || first != 0 || right != 0 {
             var ind = #" w:left="\#(left)""#
             if right != 0 { ind += #" w:right="\#(right)""# }
@@ -247,7 +247,7 @@ enum DocxWriter {
         if run.strike { rPr += "<w:strike/>" }
         if let color = run.colorHex { rPr += #"<w:color w:val="\#(color)"/>"# }
         if let size = run.fontSize ?? halfPoints.map({ CGFloat($0) / 2 }), size > 0 {
-            let half = Int((size * 2).rounded())
+            let half = clampedInt(size * 2, 1...3_276)
             rPr += #"<w:sz w:val="\#(half)"/><w:szCs w:val="\#(half)"/>"#
         }
         if run.underline { rPr += #"<w:u w:val="single"/>"# }

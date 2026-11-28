@@ -47,9 +47,10 @@ enum HTMLReader {
         }
         func closeCell() {
             guard let text = cell else { return }
+            cell = nil
+            guard row.count < ReaderBlocks.maxTableColumns else { cellSpan = 1; return }     // 칸이 끝없이 늘지 않게
             row.append(text.trimmingCharacters(in: .whitespacesAndNewlines))
             if cellSpan > 1 { row += Array(repeating: "", count: min(cellSpan - 1, 200)) }
-            cell = nil
             cellSpan = 1
         }
         func closeRow() {
